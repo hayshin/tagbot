@@ -109,3 +109,4 @@ cargo run --release
 - Each group maintains its own separate tag system
 - The "muted" tag is special and excludes users from general `/call` commands
 - Users can only add/remove themselves, not other users
+- **Private Notifications**: To receive direct messages when you're called in a group, you MUST start a private chat with the bot (send any message to it).

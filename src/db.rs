@@ -34,9 +34,32 @@ impl Database {
             [],
         )?;
 
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS private_users (
+                user_id INTEGER PRIMARY KEY
+            )",
+            [],
+        )?;
+
         Ok(Self {
             conn: Arc::new(Mutex::new(conn)),
         })
+    }
+
+    pub fn register_private_user(&self, user_id: u64) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "INSERT OR IGNORE INTO private_users (user_id) VALUES (?)",
+            params![user_id],
+        )?;
+        Ok(())
+    }
+
+    pub fn is_private_user(&self, user_id: u64) -> Result<bool> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare("SELECT 1 FROM private_users WHERE user_id = ?")?;
+        let exists = stmt.exists(params![user_id])?;
+        Ok(exists)
     }
 
     pub fn join_tag(&self, chat_id: i64, tag_name: &str, user: &UserInfo) -> Result<bool> {

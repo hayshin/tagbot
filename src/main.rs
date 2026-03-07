@@ -62,6 +62,13 @@ async fn answer(
 ) -> ResponseResult<()> {
     let chat_id = msg.chat.id.0;
 
+    // Check if it's a private chat and register the user
+    if msg.chat.is_private() {
+        if let Some(user) = msg.from() {
+            storage.register_private_user(user.id.0).expect("DB error");
+        }
+    }
+
     let user_info = match msg.from() {
         Some(user) => UserInfo {
             id: user.id.0,
@@ -176,6 +183,24 @@ async fn answer(
                 };
 
                 bot.send_message(msg.chat.id, message).await?;
+
+                // Also send direct messages to users who have started the bot privately
+                let from_name = match msg.from() {
+                    Some(user) => format!("{} ({})", user.first_name, msg.chat.title().unwrap_or("this group")),
+                    None => "Someone in the group".to_string(),
+                };
+
+                for user in users_to_call {
+                    if storage.is_private_user(user.id).expect("DB error") {
+                        let dm_message = if is_all {
+                            format!("🔔 You were called in {} as part of 'all' tag!", from_name)
+                        } else {
+                            format!("🔔 You were called in {} for tag '{}'!", from_name, tag_name)
+                        };
+                        // We use user.id as chat_id for private messages
+                        let _ = bot.send_message(ChatId(user.id as i64), dm_message).await;
+                    }
+                }
             }
         }
     }
