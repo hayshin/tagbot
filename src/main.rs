@@ -1,7 +1,8 @@
+mod db;
+use db::Database;
+
 use teloxide::{prelude::*, utils::command::BotCommands};
-use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::RwLock;
 use serde::{Deserialize, Serialize};
 
 type ChatId = i64;
@@ -9,14 +10,13 @@ type UserId = u64;
 type TagName = String;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-struct UserInfo {
-    id: UserId,
-    username: Option<String>,
-    first_name: String,
+pub struct UserInfo {
+    pub id: UserId,
+    pub username: Option<String>,
+    pub first_name: String,
 }
 
-type GroupData = HashMap<TagName, Vec<UserInfo>>;
-type BotStorage = Arc<RwLock<HashMap<ChatId, GroupData>>>;
+type BotStorage = Arc<Database>;
 
 #[derive(BotCommands, Clone)]
 #[command(rename_rule = "lowercase", description = "Available commands:")]
@@ -41,7 +41,8 @@ async fn main() {
     log::info!("Starting tag bot...");
 
     let bot = Bot::from_env();
-    let storage: BotStorage = Arc::new(RwLock::new(HashMap::new()));
+    let db = Database::new("tagbot.db").expect("Failed to initialize database");
+    let storage: BotStorage = Arc::new(db);
 
     Command::repl(bot, move |bot: Bot, msg: Message, cmd: Command| {
         let storage = Arc::clone(&storage);
@@ -79,12 +80,7 @@ async fn answer(
                 .await?;
         }
         Command::Mute => {
-            let mut storage = storage.write().await;
-            let group = storage.entry(chat_id).or_insert_with(HashMap::new);
-            let muted = group.entry("muted".to_string()).or_insert_with(Vec::new);
-
-            if !muted.iter().any(|u| u.id == user_info.id) {
-                muted.push(user_info.clone());
+            if storage.mute_user(chat_id, &user_info).expect("DB error") {
                 bot.send_message(msg.chat.id, "You have been muted and won't be called in group mentions")
                     .await?;
             } else {
@@ -97,33 +93,18 @@ async fn answer(
                 tag_name = "all".to_string();
             }
 
-            let mut storage = storage.write().await;
-            if let Some(group) = storage.get_mut(&chat_id) {
-                if let Some(users) = group.get_mut(&tag_name) {
-                    if let Some(pos) = users.iter().position(|u| u.id == user_info.id) {
-                        users.remove(pos);
-                        if users.is_empty() {
-                            group.remove(&tag_name);
-                        }
-                        bot.send_message(
-                            msg.chat.id,
-                            format!("You have been removed from tag '{}'", tag_name),
-                        )
-                        .await?;
-                    } else {
-                        bot.send_message(
-                            msg.chat.id,
-                            format!("You are not in tag '{}'", tag_name),
-                        )
-                        .await?;
-                    }
-                } else {
-                    bot.send_message(msg.chat.id, format!("Tag '{}' does not exist", tag_name))
-                        .await?;
-                }
+            if storage.leave_tag(chat_id, &tag_name, user_info.id).expect("DB error") {
+                bot.send_message(
+                    msg.chat.id,
+                    format!("You have been removed from tag '{}'", tag_name),
+                )
+                .await?;
             } else {
-                bot.send_message(msg.chat.id, "No tags exist in this group yet")
-                    .await?;
+                bot.send_message(
+                    msg.chat.id,
+                    format!("You are not in tag '{}' or it doesn't exist", tag_name),
+                )
+                .await?;
             }
         }
         Command::Join(mut tag_name) => {
@@ -131,12 +112,7 @@ async fn answer(
                 tag_name = "all".to_string();
             }
 
-            let mut storage = storage.write().await;
-            let group = storage.entry(chat_id).or_insert_with(HashMap::new);
-            let users = group.entry(tag_name.clone()).or_insert_with(Vec::new);
-
-            if !users.iter().any(|u| u.id == user_info.id) {
-                users.push(user_info);
+            if storage.join_tag(chat_id, &tag_name, &user_info).expect("DB error") {
                 bot.send_message(
                     msg.chat.id,
                     format!("You have been added to tag '{}'", tag_name),
@@ -151,92 +127,61 @@ async fn answer(
             }
         }
         Command::List => {
-            let storage = storage.read().await;
+            let tags = storage.list_tags(chat_id).expect("DB error");
+            let muted_count = storage.get_muted_count(chat_id).expect("DB error");
 
-            if let Some(group) = storage.get(&chat_id) {
-                if group.is_empty() {
-                    bot.send_message(msg.chat.id, "No tags exist in this group yet").await?;
-                } else {
-                    let mut tag_list = Vec::new();
-                    for (tag_name, users) in group.iter() {
-                        if tag_name != "muted" {
-                            tag_list.push(format!("• {} ({} users)", tag_name, users.len()));
-                        }
-                    }
-
-                    let muted_count = group.get("muted").map(|u| u.len()).unwrap_or(0);
-
-                    let message = if tag_list.is_empty() {
-                        format!("No custom tags yet.\nMuted users: {}", muted_count)
-                    } else {
-                        format!("Tags in this group:\n{}\n\nMuted users: {}", tag_list.join("\n"), muted_count)
-                    };
-
-                    bot.send_message(msg.chat.id, message).await?;
-                }
+            if tags.is_empty() {
+                bot.send_message(msg.chat.id, format!("No tags exist in this group yet.\nMuted users: {}", muted_count)).await?;
             } else {
-                bot.send_message(msg.chat.id, "No tags exist in this group yet").await?;
+                let mut tag_list = Vec::new();
+                for (tag_name, count) in tags {
+                    tag_list.push(format!("• {} ({} users)", tag_name, count));
+                }
+
+                let message = format!("Tags in this group:\n{}\n\nMuted users: {}", tag_list.join("\n"), muted_count);
+                bot.send_message(msg.chat.id, message).await?;
             }
         }
         Command::Call(tag_name) => {
-            let storage = storage.read().await;
+            let is_all = tag_name.is_empty() || tag_name == "all";
+            let users_to_call = if is_all {
+                storage.get_all_non_muted_users(chat_id).expect("DB error")
+            } else {
+                storage.get_tag_users(chat_id, &tag_name).expect("DB error")
+            };
 
-            if let Some(group) = storage.get(&chat_id) {
-                let is_all = tag_name.is_empty() || tag_name == "all";
-                let users_to_call: Vec<UserInfo> = if is_all {
-                    // Call all users except muted
-                    let muted_ids: Vec<UserId> = group
-                        .get("muted")
-                        .map(|users| users.iter().map(|u| u.id).collect())
-                        .unwrap_or_default();
-
-                    let mut unique_users = HashMap::new();
-                    for users in group.values() {
-                        for user in users {
-                            if !muted_ids.contains(&user.id) {
-                                unique_users.insert(user.id, user.clone());
-                            }
-                        }
-                    }
-                    unique_users.into_values().collect()
+            if users_to_call.is_empty() {
+                let message = if is_all {
+                    "No users to call in this group".to_string()
                 } else {
-                    // Call specific tag
-                    group.get(&tag_name).cloned().unwrap_or_default()
+                    format!("No users in tag '{}'", tag_name)
+                };
+                bot.send_message(msg.chat.id, message).await?;
+            } else {
+                let mentions: Vec<String> = users_to_call
+                    .iter()
+                    .map(|user| {
+                        if let Some(username) = &user.username {
+                            format!("@{}", username)
+                        } else {
+                            user.first_name.clone()
+                        }
+                    })
+                    .collect();
+
+                let message = if is_all {
+                    format!("Calling all: {}", mentions.join(" "))
+                } else {
+                    format!("Calling tag '{}': {}", tag_name, mentions.join(" "))
                 };
 
-                if users_to_call.is_empty() {
-                    let message = if is_all {
-                        "No users to call in this group".to_string()
-                    } else {
-                        format!("No users in tag '{}'", tag_name)
-                    };
-                    bot.send_message(msg.chat.id, message).await?;
-                } else {
-                    let mentions: Vec<String> = users_to_call
-                        .iter()
-                        .map(|user| {
-                            if let Some(username) = &user.username {
-                                format!("@{}", username)
-                            } else {
-                                // Fallback to first name if no username
-                                user.first_name.clone()
-                            }
-                        })
-                        .collect();
-
-                    let message = if is_all {
-                        format!("Calling all: {}", mentions.join(" "))
-                    } else {
-                        format!("Calling tag '{}': {}", tag_name, mentions.join(" "))
-                    };
-
-                    bot.send_message(msg.chat.id, message).await?;
-                }
-            } else {
-                bot.send_message(msg.chat.id, "No tags exist in this group yet")
-                    .await?;
+                bot.send_message(msg.chat.id, message).await?;
             }
         }
+    }
+
+    Ok(())
+}
     }
 
     Ok(())
