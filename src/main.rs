@@ -167,32 +167,17 @@ async fn answer(
         }
         Command::Call(tag_name) => {
             let tag_name = normalize_tag(tag_name);
-            let is_all = tag_name == "all";
-
-            let users_to_call = if is_all {
-                storage.get_all_non_muted_users(chat_id).await?
-            } else {
-                storage.get_tag_users(chat_id, tag_name.clone()).await?
-            };
+            let users_to_call = storage.get_tag_users(chat_id, tag_name.clone()).await?;
 
             if users_to_call.is_empty() {
-                let message = if is_all {
-                    "No users to call in this group".to_string()
-                } else {
-                    format!("No users in tag '{}'", markdown::escape(&tag_name))
-                };
-                bot.send_message(msg.chat.id, message).await?;
+                bot.send_message(msg.chat.id, format!("No users in tag '{}'", markdown::escape(&tag_name))).await?;
             } else {
                 let mentions: Vec<String> = users_to_call
                     .iter()
                     .map(|user| user.mention())
                     .collect();
 
-                let message = if is_all {
-                    format!("Calling all: {}", mentions.join(" "))
-                } else {
-                    format!("Calling tag '{}': {}", markdown::escape(&tag_name), mentions.join(" "))
-                };
+                let message = format!("Calling tag '{}': {}", markdown::escape(&tag_name), mentions.join(" "));
 
                 bot.send_message(msg.chat.id, message)
                     .parse_mode(teloxide::types::ParseMode::MarkdownV2)
@@ -209,11 +194,7 @@ async fn answer(
                     let from_name = from_name.clone();
                     async move {
                         if let Ok(true) = storage.is_private_user(user.id).await {
-                            let dm_message = if is_all {
-                                format!("🔔 You were called in {} as part of 'all' tag!", from_name)
-                            } else {
-                                format!("🔔 You were called in {} for tag '{}'!", from_name, tag_name)
-                            };
+                            let dm_message = format!("🔔 You were called in {} for tag '{}'!", from_name, tag_name);
                             let _ = bot.send_message(teloxide::types::ChatId(user.id as i64), dm_message).await;
                         }
                     }

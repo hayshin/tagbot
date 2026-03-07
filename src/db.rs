@@ -143,32 +143,6 @@ impl Database {
         }).await
     }
 
-    pub async fn get_all_non_muted_users(&self, chat_id: i64) -> Result<Vec<UserInfo>> {
-        self.conn.call(move |conn| {
-            let mut stmt = conn.prepare(
-                "SELECT DISTINCT u.user_id, u.username, u.first_name 
-                 FROM user_tags t
-                 JOIN users u ON t.user_id = u.user_id
-                 LEFT JOIN muted_users m ON t.user_id = m.user_id AND t.chat_id = m.chat_id
-                 WHERE t.chat_id = ? AND m.user_id IS NULL",
-            )?;
-
-            let rows = stmt.query_map(params![chat_id], |row| {
-                Ok(UserInfo {
-                    id: row.get(0)?,
-                    username: row.get(1)?,
-                    first_name: row.get(2)?,
-                })
-            })?;
-
-            let mut users = Vec::new();
-            for user in rows {
-                users.push(user?);
-            }
-            Ok(users)
-        }).await
-    }
-
     pub async fn list_tags(&self, chat_id: i64) -> Result<Vec<(String, i64)>> {
         self.conn.call(move |conn| {
             let mut stmt = conn.prepare(
