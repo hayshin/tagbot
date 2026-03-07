@@ -11,7 +11,8 @@ A Telegram bot built with Rust and Teloxide that allows users to create and mana
 
 ## Commands
 
-- `/mute` - Mute yourself (you won't be called in group mentions unless explicitly tagged)
+- `/mute` - Mute yourself (you won't be called in group mentions)
+- `/unmute` - Unmute yourself (you will be called in group mentions again)
 - `/join [tag_name]` - Join a specific tag (defaults to "all")
 - `/left [tag_name]` - Leave a specific tag (defaults to "all")
 - `/call [tag_name]` - Mention all users in the specified tag (or all non-muted users if "all" or no tag specified)
@@ -96,7 +97,17 @@ cargo run --release
 ```
 .
 ├── src/
-│   └── main.rs          # Bot logic
+│   ├── main.rs          # Bot entry point and dispatcher
+│   ├── db.rs            # Database operations (SQLite)
+│   ├── models.rs        # Data models
+│   └── commands/        # Command handlers
+│       ├── mod.rs       # Command definition
+│       ├── call.rs      # /call handler
+│       ├── join.rs      # /join handler
+│       ├── leave.rs     # /left handler
+│       ├── list.rs      # /list handler
+│       ├── mute.rs      # /mute handler
+│       └── unmute.rs    # /unmute handler
 ├── Cargo.toml           # Rust dependencies
 ├── Dockerfile           # Docker build instructions
 ├── docker-compose.yml   # Docker Compose configuration
@@ -105,8 +116,8 @@ cargo run --release
 
 ## Notes
 
-- Data is stored in memory and will be lost when the bot restarts
+- Data is persisted in a SQLite database (`tagbot.db`)
 - Each group maintains its own separate tag system
-- The "muted" tag is special and excludes users from general `/call` commands
+- Muted users are excluded from `/call` results
 - Users can only add/remove themselves, not other users
 - **Private Notifications**: To receive direct messages when you're called in a group, you MUST start a private chat with the bot (send any message to it).
