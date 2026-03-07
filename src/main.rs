@@ -77,6 +77,9 @@ async fn answer(
             Command::Call(tag) => {
                 commands::call::handle_call(bot, msg, storage, tag).await?;
             }
+            Command::Ask(input) => {
+                commands::ask::handle_ask(bot, msg, storage, input).await?;
+            }
         }
     } else {
         bot.send_message(msg.chat.id, "Cannot identify user").await?;

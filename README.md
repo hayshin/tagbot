@@ -16,6 +16,7 @@ A Telegram bot built with Rust and Teloxide that allows users to create and mana
 - `/join [tag_name]` - Join a specific tag (defaults to "all")
 - `/left [tag_name]` - Leave a specific tag (defaults to "all")
 - `/call [tag_name]` - Mention all users in the specified tag (or all non-muted users if "all" or no tag specified)
+- `/ask [tag_name] [question]` - Pick a random user from the tag and respond with the question
 - `/list` - List all tags in this group
 - `/help` - Show available commands
 

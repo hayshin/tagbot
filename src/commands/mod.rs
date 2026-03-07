@@ -6,6 +6,7 @@ pub mod leave;
 pub mod list;
 pub mod mute;
 pub mod unmute;
+pub mod ask;
 
 #[derive(BotCommands, Clone)]
 #[command(rename_rule = "lowercase", description = "Available commands:")]
@@ -20,6 +21,8 @@ pub enum Command {
     Join(String),
     #[command(description = "call all users in a tag: /call [tag_name] (defaults to 'all')")]
     Call(String),
+    #[command(description = "ask a question to a tag: /ask [tag_name] [question] (defaults to 'all')")]
+    Ask(String),
     #[command(description = "list all tags in this group")]
     List,
     #[command(description = "show available commands")]
