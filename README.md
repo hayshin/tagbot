@@ -20,62 +20,30 @@ A Telegram bot built with Rust and Teloxide that allows users to create and mana
 - `/list` - List all tags in this group
 - `/help` - Show available commands
 
-## Setup
+## Deployment
 
-### Prerequisites
+### GitHub Actions (Recommended)
 
-1. Create a bot with [@BotFather](https://t.me/botfather) on Telegram
-2. Get your bot token
-3. Install Docker and Docker Compose
+1. Push your code to a GitHub repository.
+2. Create a tag: `git tag v1.0.0 && git push origin v1.0.0`.
+3. The GitHub Action will automatically:
+   - Build a release binary and attach it to a new GitHub Release.
+   - Build and push a Docker image to GitHub Container Registry (`ghcr.io`).
 
-### Running with Docker Compose
+### Manual Deployment (VPS)
 
-1. Create a `.env` file in the project root:
+1. Install Docker and Docker Compose on your server.
+2. Copy `docker-compose.yml` to your server.
+3. Create a `.env` file with `TELOXIDE_TOKEN`.
+4. Run: `docker compose up -d`.
 
-```bash
-TELOXIDE_TOKEN=your_bot_token_here
-```
+### Binary Deployment
 
-2. Build and run:
-
-```bash
-docker-compose up -d
-```
-
-3. Check logs:
-
-```bash
-docker-compose logs -f
-```
-
-### Running with Docker
-
-```bash
-# Build the image
-docker build -t telegram-tag-bot .
-
-# Run the container
-docker run -d \
-  --name telegram-tag-bot \
-  -e TELOXIDE_TOKEN=your_bot_token_here \
-  telegram-tag-bot
-```
-
-### Running locally (without Docker)
-
-1. Install Rust: https://rustup.rs/
-
-2. Set environment variable:
-
-```bash
-export TELOXIDE_TOKEN=your_bot_token_here
-```
-
-3. Run the bot:
-
-```bash
-cargo run --release
-```
+1. Download the latest binary from [Releases](../../releases).
+2. Set environment variables:
+   - `TELOXIDE_TOKEN=your_token`
+   - `DATABASE_URL=./data/tagbot.db`
+3. Run: `./telegram-tag-bot`.
 
 ## Usage Example
 

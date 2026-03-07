@@ -17,7 +17,8 @@ async fn main() {
     log::info!("Starting tag bot...");
 
     let bot = Bot::from_env();
-    let db = Database::new("tagbot.db").await.expect("Failed to initialize database");
+    let db_path = std::env::var("DATABASE_URL").unwrap_or_else(|_| "tagbot.db".to_string());
+    let db = Database::new(&db_path).await.expect("Failed to initialize database");
     let storage: BotStorage = Arc::new(db);
 
     let handler = Update::filter_message()
