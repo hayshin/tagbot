@@ -1,19 +1,29 @@
 mod db;
 use db::Database;
 
-use teloxide::{prelude::*, utils::command::BotCommands};
+use teloxide::{prelude::*, utils::{command::BotCommands, markdown}, repls::CommandReplExt};
 use std::sync::Arc;
 use serde::{Deserialize, Serialize};
+use futures::future::join_all;
 
-type ChatId = i64;
 type UserId = u64;
-type TagName = String;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserInfo {
     pub id: UserId,
     pub username: Option<String>,
     pub first_name: String,
+}
+
+impl UserInfo {
+    fn mention(&self) -> String {
+        match &self.username {
+            Some(username) => format!("@{}", markdown::escape(username)),
+            None => {
+                format!("[{}](tg://user?id={})", markdown::escape(&self.first_name), self.id)
+            }
+        }
+    }
 }
 
 type BotStorage = Arc<Database>;
@@ -41,17 +51,29 @@ async fn main() {
     log::info!("Starting tag bot...");
 
     let bot = Bot::from_env();
-    let db = Database::new("tagbot.db").expect("Failed to initialize database");
+    let db = Database::new("tagbot.db").await.expect("Failed to initialize database");
     let storage: BotStorage = Arc::new(db);
 
     Command::repl(bot, move |bot: Bot, msg: Message, cmd: Command| {
         let storage = Arc::clone(&storage);
         async move {
-            answer(bot, msg, cmd, storage).await?;
+            if let Err(e) = answer(bot.clone(), msg.clone(), cmd, storage).await {
+                log::error!("Error in answer: {:?}", e);
+                let _ = bot.send_message(msg.chat.id, "An internal error occurred while processing your request.").await;
+            }
             Ok(())
         }
     })
     .await;
+}
+
+fn normalize_tag(tag: String) -> String {
+    let t = tag.trim();
+    if t.is_empty() {
+        "all".to_string()
+    } else {
+        t.to_lowercase()
+    }
 }
 
 async fn answer(
@@ -59,17 +81,10 @@ async fn answer(
     msg: Message,
     cmd: Command,
     storage: BotStorage,
-) -> ResponseResult<()> {
+) -> anyhow::Result<()> {
     let chat_id = msg.chat.id.0;
 
-    // Check if it's a private chat and register the user
-    if msg.chat.is_private() {
-        if let Some(user) = msg.from() {
-            storage.register_private_user(user.id.0).expect("DB error");
-        }
-    }
-
-    let user_info = match msg.from() {
+    let user_info = match msg.from {
         Some(user) => UserInfo {
             id: user.id.0,
             username: user.username.clone(),
@@ -81,13 +96,18 @@ async fn answer(
         }
     };
 
+    // Check if it's a private chat and register the user
+    if msg.chat.is_private() {
+        storage.register_private_user(&user_info).await?;
+    }
+
     match cmd {
         Command::Help => {
             bot.send_message(msg.chat.id, Command::descriptions().to_string())
                 .await?;
         }
         Command::Mute => {
-            if storage.mute_user(chat_id, &user_info).expect("DB error") {
+            if storage.mute_user(chat_id, &user_info).await? {
                 bot.send_message(msg.chat.id, "You have been muted and won't be called in group mentions")
                     .await?;
             } else {
@@ -95,54 +115,50 @@ async fn answer(
                     .await?;
             }
         }
-        Command::Left(mut tag_name) => {
-            if tag_name.is_empty() {
-                tag_name = "all".to_string();
-            }
+        Command::Left(tag_name) => {
+            let tag_name = normalize_tag(tag_name);
 
-            if storage.leave_tag(chat_id, &tag_name, user_info.id).expect("DB error") {
+            if storage.leave_tag(chat_id, tag_name.clone(), user_info.id).await? {
                 bot.send_message(
                     msg.chat.id,
-                    format!("You have been removed from tag '{}'", tag_name),
+                    format!("You have been removed from tag '{}'", markdown::escape(&tag_name)),
                 )
                 .await?;
             } else {
                 bot.send_message(
                     msg.chat.id,
-                    format!("You are not in tag '{}' or it doesn't exist", tag_name),
+                    format!("You are not in tag '{}' or it doesn't exist", markdown::escape(&tag_name)),
                 )
                 .await?;
             }
         }
-        Command::Join(mut tag_name) => {
-            if tag_name.is_empty() {
-                tag_name = "all".to_string();
-            }
+        Command::Join(tag_name) => {
+            let tag_name = normalize_tag(tag_name);
 
-            if storage.join_tag(chat_id, &tag_name, &user_info).expect("DB error") {
+            if storage.join_tag(chat_id, tag_name.clone(), &user_info).await? {
                 bot.send_message(
                     msg.chat.id,
-                    format!("You have been added to tag '{}'", tag_name),
+                    format!("You have been added to tag '{}'", markdown::escape(&tag_name)),
                 )
                 .await?;
             } else {
                 bot.send_message(
                     msg.chat.id,
-                    format!("You are already in tag '{}'", tag_name),
+                    format!("You are already in tag '{}'", markdown::escape(&tag_name)),
                 )
                 .await?;
             }
         }
         Command::List => {
-            let tags = storage.list_tags(chat_id).expect("DB error");
-            let muted_count = storage.get_muted_count(chat_id).expect("DB error");
+            let tags = storage.list_tags(chat_id).await?;
+            let muted_count = storage.get_muted_count(chat_id).await?;
 
             if tags.is_empty() {
                 bot.send_message(msg.chat.id, format!("No tags exist in this group yet.\nMuted users: {}", muted_count)).await?;
             } else {
                 let mut tag_list = Vec::new();
                 for (tag_name, count) in tags {
-                    tag_list.push(format!("• {} ({} users)", tag_name, count));
+                    tag_list.push(format!("• {} ({} users)", markdown::escape(&tag_name), count));
                 }
 
                 let message = format!("Tags in this group:\n{}\n\nMuted users: {}", tag_list.join("\n"), muted_count);
@@ -150,63 +166,62 @@ async fn answer(
             }
         }
         Command::Call(tag_name) => {
-            let is_all = tag_name.is_empty() || tag_name == "all";
+            let tag_name = normalize_tag(tag_name);
+            let is_all = tag_name == "all";
+
             let users_to_call = if is_all {
-                storage.get_all_non_muted_users(chat_id).expect("DB error")
+                storage.get_all_non_muted_users(chat_id).await?
             } else {
-                storage.get_tag_users(chat_id, &tag_name).expect("DB error")
+                storage.get_tag_users(chat_id, tag_name.clone()).await?
             };
 
             if users_to_call.is_empty() {
                 let message = if is_all {
                     "No users to call in this group".to_string()
                 } else {
-                    format!("No users in tag '{}'", tag_name)
+                    format!("No users in tag '{}'", markdown::escape(&tag_name))
                 };
                 bot.send_message(msg.chat.id, message).await?;
             } else {
                 let mentions: Vec<String> = users_to_call
                     .iter()
-                    .map(|user| {
-                        if let Some(username) = &user.username {
-                            format!("@{}", username)
-                        } else {
-                            user.first_name.clone()
-                        }
-                    })
+                    .map(|user| user.mention())
                     .collect();
 
                 let message = if is_all {
                     format!("Calling all: {}", mentions.join(" "))
                 } else {
-                    format!("Calling tag '{}': {}", tag_name, mentions.join(" "))
+                    format!("Calling tag '{}': {}", markdown::escape(&tag_name), mentions.join(" "))
                 };
 
-                bot.send_message(msg.chat.id, message).await?;
+                bot.send_message(msg.chat.id, message)
+                    .parse_mode(teloxide::types::ParseMode::MarkdownV2)
+                    .await?;
 
                 // Also send direct messages to users who have started the bot privately
-                let from_name = match msg.from() {
-                    Some(user) => format!("{} ({})", user.first_name, msg.chat.title().unwrap_or("this group")),
-                    None => "Someone in the group".to_string(),
-                };
+                let from_chat_title = msg.chat.title().unwrap_or("this group");
+                let from_name = format!("{} ({})", markdown::escape(&user_info.first_name), markdown::escape(from_chat_title));
 
-                for user in users_to_call {
-                    if storage.is_private_user(user.id).expect("DB error") {
-                        let dm_message = if is_all {
-                            format!("🔔 You were called in {} as part of 'all' tag!", from_name)
-                        } else {
-                            format!("🔔 You were called in {} for tag '{}'!", from_name, tag_name)
-                        };
-                        // We use user.id as chat_id for private messages
-                        let _ = bot.send_message(ChatId(user.id as i64), dm_message).await;
+                let dm_futures = users_to_call.into_iter().map(|user| {
+                    let bot = bot.clone();
+                    let storage = Arc::clone(&storage);
+                    let tag_name = tag_name.clone();
+                    let from_name = from_name.clone();
+                    async move {
+                        if let Ok(true) = storage.is_private_user(user.id).await {
+                            let dm_message = if is_all {
+                                format!("🔔 You were called in {} as part of 'all' tag!", from_name)
+                            } else {
+                                format!("🔔 You were called in {} for tag '{}'!", from_name, tag_name)
+                            };
+                            let _ = bot.send_message(teloxide::types::ChatId(user.id as i64), dm_message).await;
+                        }
                     }
-                }
+                });
+
+                join_all(dm_futures).await;
             }
         }
-    }
-
-    Ok(())
-}
     }
 
     Ok(())
