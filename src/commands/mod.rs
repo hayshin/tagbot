@@ -19,6 +19,7 @@ pub struct CommandContext {
     pub msg: Message,
     pub db: Arc<Database>,
     pub user: UserInfo,
+    pub is_russian: bool,
 }
 
 pub struct Tag(String);
