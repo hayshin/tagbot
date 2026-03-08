@@ -14,7 +14,7 @@ pub async fn handle_call(ctx: CommandContext, tag: Tag) -> anyhow::Result<()> {
             .send_message(
                 ctx.msg.chat.id,
                 format!(
-                    "No users in tag '{}'",
+                    "В теге '{}' нет пользователей",
                     html::escape(tag.as_ref())
                 ),
             )
@@ -26,7 +26,7 @@ pub async fn handle_call(ctx: CommandContext, tag: Tag) -> anyhow::Result<()> {
             .collect();
 
         let message = format!(
-            "Calling tag '{}': {}",
+            "Вызываем тег '{}': {}",
             html::escape(tag.as_ref()),
             mentions.join(" ")
         );
@@ -37,7 +37,7 @@ pub async fn handle_call(ctx: CommandContext, tag: Tag) -> anyhow::Result<()> {
             .await?;
 
         // Also send direct messages to users who have started the bot privately
-        let from_chat_title = ctx.msg.chat.title().unwrap_or("this group");
+        let from_chat_title = ctx.msg.chat.title().unwrap_or("этой группе");
         let from_name = format!(
             "{} ({})",
             html::escape(
@@ -45,7 +45,7 @@ pub async fn handle_call(ctx: CommandContext, tag: Tag) -> anyhow::Result<()> {
                     .from
                     .as_ref()
                     .map(|u| u.first_name.clone())
-                    .unwrap_or_else(|| "Someone".to_string())
+                    .unwrap_or_else(|| "Кто-то".to_string())
             ),
             html::escape(from_chat_title)
         );
@@ -59,7 +59,7 @@ pub async fn handle_call(ctx: CommandContext, tag: Tag) -> anyhow::Result<()> {
                 let from_name = from_name.clone();
                 async move {
                     let dm_message = format!(
-                        "🔔 You were called in {} for tag '{}'!",
+                        "🔔 Вас вызвали в {} по тегу '{}'!",
                         from_name, tag_name
                     );
                     let _ = bot

@@ -7,20 +7,20 @@ pub async fn handle_list(ctx: CommandContext) -> anyhow::Result<()> {
 
     if tags.is_empty() {
         ctx.bot
-            .send_message(ctx.msg.chat.id, "No tags exist in this group yet.")
+            .send_message(ctx.msg.chat.id, "В этой группе пока нет тегов.")
             .await?;
     } else {
         let mut tag_list = Vec::new();
         for (tag_name, count) in tags {
             tag_list.push(format!(
-                "• {} ({} users)",
+                "• {} ({} уч.)",
                 html::escape(&tag_name),
                 count
             ));
         }
 
         let message = format!(
-            "Tags in this group:
+            "Теги в этой группе:
 {}",
             tag_list.join(
                 "

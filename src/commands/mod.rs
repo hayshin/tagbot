@@ -19,7 +19,6 @@ pub struct CommandContext {
     pub msg: Message,
     pub db: Arc<Database>,
     pub user: UserInfo,
-    pub is_russian: bool,
 }
 
 pub struct Tag(String);
@@ -120,27 +119,25 @@ impl AsRef<str> for Tag {
 }
 
 #[derive(BotCommands, Clone)]
-#[command(rename_rule = "lowercase", description = "Available commands:")]
+#[command(rename_rule = "lowercase", description = "Доступные команды:")]
 pub enum Command {
-    #[command(description = "get started with the bot")]
+    #[command(description = "начать работу с ботом")]
     Start,
-    #[command(description = "mute yourself for a specific tag: /mute <tag_name>")]
+    #[command(description = "замутить тег: /mute <название_тега>")]
     Mute(String),
-    #[command(description = "unmute yourself for a specific tag: /unmute <tag_name>")]
+    #[command(description = "размутить тег: /unmute <название_тега>")]
     Unmute(String),
-    #[command(description = "leave a tag: /leave [tag_name] (defaults to 'all')")]
+    #[command(description = "выйти из тега: /leave [название_тега] (по умолчанию 'all')")]
     Leave(String),
-    #[command(description = "join a tag: /join [tag_name] (defaults to 'all')")]
+    #[command(description = "войти в тег: /join [название_тега] (по умолчанию 'all')")]
     Join(String),
-    #[command(description = "call all users in a tag: /call [tag_name] (defaults to 'all')")]
+    #[command(description = "вызвать всех участников тега: /call [название_тега] (по умолчанию 'all')")]
     Call(String),
-    #[command(
-        description = "ask a question to a tag: /ask [tag_name] [question] (defaults to 'all')"
-    )]
+    #[command(description = "выбрать случайного участника тега: /ask [название_тега] (по умолчанию 'all')")]
     Ask(String),
-    #[command(description = "list all tags in this group")]
+    #[command(description = "показать список всех тегов в группе")]
     List,
-    #[command(description = "show available commands")]
+    #[command(description = "показать справку по командам")]
     Help,
 }
 
@@ -148,7 +145,7 @@ pub async fn handle_command(ctx: CommandContext, cmd: Command) -> anyhow::Result
     match cmd {
         Command::Start => {
             let welcome = format!(
-                "Welcome, {}! 👋\n\nI am a tag bot. You can join tags and be called when someone needs you.\n\n{}",
+                "Добро пожаловать, {}! 👋\n\nЯ бот для тегов. Вы можете вступать в теги, и вас будут вызывать, когда вы понадобитесь.\n\n{}",
                 ctx.user.first_name,
                 Command::descriptions()
             );

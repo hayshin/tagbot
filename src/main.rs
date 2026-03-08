@@ -38,14 +38,7 @@ async fn main() {
 }
 
 async fn answer(bot: Bot, msg: Message, cmd: Command, storage: BotStorage) -> anyhow::Result<()> {
-    let is_russian = msg
-        .text()
-        .map(|t| t.chars().any(|c| {
-            let low = c.to_lowercase().next().unwrap_or(c);
-            ('\u{0400}'..='\u{04FF}').contains(&low)
-        }))
-        .unwrap_or(false);
-    process_command(bot, msg, cmd, storage, is_russian).await
+    process_command(bot, msg, cmd, storage).await
 }
 
 async fn handle_maybe_plain_command(
@@ -60,7 +53,6 @@ async fn handle_maybe_plain_command(
         };
 
         let cmd_name = commands::normalize_word(cmd_name_raw);
-        let is_russian = cmd_name_raw.to_lowercase() != cmd_name;
         let cmd = match cmd_name.as_str() {
             "ask" => Some(Command::Ask(args.to_string())),
             "call" => Some(Command::Call(args.to_string())),
@@ -74,7 +66,7 @@ async fn handle_maybe_plain_command(
         };
 
         if let Some(cmd) = cmd {
-            return process_command(bot, msg, cmd, storage, is_russian).await;
+            return process_command(bot, msg, cmd, storage).await;
         }
     }
     Ok(())
@@ -85,7 +77,6 @@ async fn process_command(
     msg: Message,
     cmd: Command,
     storage: BotStorage,
-    is_russian: bool,
 ) -> anyhow::Result<()> {
     // Basic user registration and upsert
     if let Some(user) = &msg.from {
@@ -106,12 +97,11 @@ async fn process_command(
             msg,
             db: storage,
             user: user_info,
-            is_russian,
         };
 
         commands::handle_command(ctx, cmd).await?;
     } else {
-        bot.send_message(msg.chat.id, "Cannot identify user")
+        bot.send_message(msg.chat.id, "Не удалось определить пользователя")
             .await?;
     }
 

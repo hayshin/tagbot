@@ -36,23 +36,17 @@ pub async fn handle_ask(ctx: CommandContext, input: String) -> anyhow::Result<()
     };
 
     if users.is_empty() {
-        let error_msg = if ctx.is_russian {
-            format!("В теге '{}' нет пользователей", tag.as_ref())
-        } else {
-            format!("No users in tag '{}'", tag.as_ref())
-        };
         ctx.bot
-            .send_error_msg(ctx.msg.chat.id, &error_msg)
+            .send_error_msg(
+                ctx.msg.chat.id,
+                &format!("В теге '{}' нет пользователей", tag.as_ref()),
+            )
             .await?;
     } else {
         let picked_user = users.choose(&mut rand::thread_rng()).unwrap();
         let mention = picked_user.info.mention();
 
-        let response = if ctx.is_russian {
-            format!("Это {}!", mention)
-        } else {
-            format!("It's {}!", mention)
-        };
+        let response = format!("Это {}!", mention);
 
         ctx.bot
             .send_message(ctx.msg.chat.id, response)

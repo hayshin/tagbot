@@ -9,7 +9,7 @@ pub async fn handle_leave(ctx: CommandContext, tag: Tag) -> anyhow::Result<()> {
         ctx.bot
             .send_success_msg(
                 ctx.msg.chat.id,
-                &format!("You have been removed from tag '{}'", tag.as_ref()),
+                &format!("Вы вышли из тега '{}'", tag.as_ref()),
             )
             .await?;
     } else {
@@ -17,7 +17,7 @@ pub async fn handle_leave(ctx: CommandContext, tag: Tag) -> anyhow::Result<()> {
             .send_error_msg(
                 ctx.msg.chat.id,
                 &format!(
-                    "You are not in tag '{}' or it doesn't exist",
+                    "Вы не состоите в теге '{}' или его не существует",
                     tag.as_ref()
                 ),
             )

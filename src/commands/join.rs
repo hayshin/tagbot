@@ -9,14 +9,14 @@ pub async fn handle_join(ctx: CommandContext, tag: Tag) -> anyhow::Result<()> {
         ctx.bot
             .send_success_msg(
                 ctx.msg.chat.id,
-                &format!("You have been added to tag '{}'", tag.as_ref()),
+                &format!("Вы были добавлены в тег '{}'", tag.as_ref()),
             )
             .await?;
     } else {
         ctx.bot
             .send_error_msg(
                 ctx.msg.chat.id,
-                &format!("You are already in tag '{}'", tag.as_ref()),
+                &format!("Вы уже состоите в теге '{}'", tag.as_ref()),
             )
             .await?;
     }

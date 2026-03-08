@@ -1,15 +1,34 @@
-# BotFather Commands
+# Команды для BotFather
 
-Copy and paste this list to [@BotFather](https://t.me/BotFather) using the `/setcommands` command.
+Скопируйте и вставьте этот список в [@BotFather](https://t.me/BotFather) с помощью команды `/setcommands`.
 
 ```text
-start - get started with the bot
-join - join a tag: /join [tag_name]
-leave - leave a tag: /leave [tag_name]
-call - call all users in a tag: /call [tag_name]
-ask - ask a question to a tag: /ask [tag_name] [question]
-list - list all tags in this group
-mute - mute yourself: /mute [ask]
-unmute - unmute yourself: /unmute [ask]
-help - show available commands
+start - начать работу с ботом
+join - вступить в тег: /join [название_тега]
+leave - выйти из тега: /leave [название_тега]
+call - вызвать всех участников тега: /call [название_тега]
+ask - выбрать случайного участника тега: /ask [название_тега]
+list - показать все теги в этой группе
+mute - замутить тег для себя: /mute <название_тега>
+unmute - размутить тег для себя: /unmute <название_тега>
+help - показать справку по командам
 ```
+
+---
+
+### Дополнительные возможности
+
+Бот полностью поддерживает русский язык:
+1. **Команды без слеша**: можно писать просто `аск дев`, `калл дев`, `джоин дев`.
+2. **Транслитерация**: теги `дев` и `dev` — это один и тот же тег. Бот автоматически понимает оба варианта.
+3. **Синонимы**: для выхода из тега можно использовать `лив` или `leave`, для вызова — `калл`, `колл` или `call`.
+
+Основные команды:
+- `аск` -> `/ask`
+- `калл` / `колл` -> `/call`
+- `джоин` / `жоин` -> `/join`
+- `лив` -> `/leave`
+- `мьют` / `мут` -> `/mute`
+- `анмьют` / `анмут` -> `/unmute`
+- `лист` -> `/list`
+- `помощь` / `хелп` -> `/help`

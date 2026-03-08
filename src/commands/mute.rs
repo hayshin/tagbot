@@ -12,7 +12,7 @@ async fn toggle_mute(ctx: CommandContext, arg: String, should_mute: bool) -> any
     let trimmed = arg.trim();
     if trimmed.is_empty() {
         ctx.bot
-            .send_error_msg(ctx.msg.chat.id, "Please specify a tag name to mute/unmute.")
+            .send_error_msg(ctx.msg.chat.id, "Пожалуйста, укажите название тега для мута/анмута.")
             .await?;
         return Ok(());
     }
@@ -33,21 +33,21 @@ async fn toggle_mute(ctx: CommandContext, arg: String, should_mute: bool) -> any
     if result {
         let response = if should_mute {
             format!(
-                "You have been muted for the '{}' tag and won't be mentioned by it",
+                "Вы замутили тег '{}' и больше не будете в нем упоминаться",
                 tag.as_ref()
             )
         } else {
             format!(
-                "You have been unmuted for the '{}' tag and can be mentioned by it again",
+                "Вы размутили тег '{}' и снова будете в нем упоминаться",
                 tag.as_ref()
             )
         };
         ctx.bot.send_success_msg(ctx.msg.chat.id, &response).await?;
     } else {
         let response = if should_mute {
-            format!("You are already muted for tag '{}'", tag.as_ref())
+            format!("Вы уже в муте для тега '{}'", tag.as_ref())
         } else {
-            format!("You were not muted for tag '{}' anyway", tag.as_ref())
+            format!("Вы и так не были в муте для тега '{}'", tag.as_ref())
         };
         ctx.bot.send_error_msg(ctx.msg.chat.id, &response).await?;
     }
