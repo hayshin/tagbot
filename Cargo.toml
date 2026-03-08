@@ -1,10 +1,10 @@
 [package]
-name = "telegram-tag-bot"
+name = "tagbot"
 version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "telegram-tag-bot"
+name = "tagbot"
 path = "src/main.rs"
 
 [dependencies]
