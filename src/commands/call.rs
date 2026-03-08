@@ -7,7 +7,7 @@ use crate::commands::normalize_tag;
 
 pub async fn handle_call(bot: Bot, msg: Message, db: Arc<Database>, tag_name: String) -> anyhow::Result<()> {
     let tag_name = normalize_tag(tag_name);
-    let users_to_call = db.get_tag_users(msg.chat.id.0, tag_name.clone()).await?;
+    let users_to_call = db.get_tag_users(msg.chat.id.0, tag_name.clone(), None).await?;
 
     if users_to_call.is_empty() {
         bot.send_message(msg.chat.id, format!("No users in tag '{}' (or they are all muted)", markdown::escape(&tag_name))).await?;

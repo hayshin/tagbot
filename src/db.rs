@@ -132,7 +132,8 @@ impl Database {
 
     pub async fn get_tag_users(&self, chat_id: i64, tag_name: String, filter_mute_type: Option<String>) -> Result<Vec<TagUserInfo>> {
         self.conn.call(move |conn| {
-            let (query, params_vec) = if let Some(mtype) = filter_mute_type {
+            let mut users = Vec::new();
+            if let Some(mtype) = filter_mute_type {
                 let q = "SELECT u.user_id, u.username, u.first_name, (pu.user_id IS NOT NULL) as is_private
                      FROM user_tags t
                      JOIN users u ON t.user_id = u.user_id
@@ -141,34 +142,43 @@ impl Database {
                      AND u.user_id NOT IN (
                          SELECT user_id FROM muted_users 
                          WHERE chat_id = ? AND (mute_type = 'all' OR mute_type = ?)
-                     )".to_string();
-                (q, params![chat_id, tag_name, chat_id, mtype])
+                     )";
+                let mut stmt = conn.prepare(q)?;
+                let rows = stmt.query_map(params![chat_id, tag_name, chat_id, mtype], |row| {
+                    Ok(TagUserInfo {
+                        info: UserInfo {
+                            id: row.get(0)?,
+                            username: row.get(1)?,
+                            first_name: row.get(2)?,
+                        },
+                        is_private: row.get(3)?,
+                    })
+                })?;
+                for user in rows {
+                    users.push(user?);
+                }
             } else {
                 let q = "SELECT u.user_id, u.username, u.first_name, (pu.user_id IS NOT NULL) as is_private
                  FROM user_tags t
                  JOIN users u ON t.user_id = u.user_id
                  LEFT JOIN private_users pu ON u.user_id = pu.user_id
                  LEFT JOIN muted_users mu ON u.user_id = mu.user_id AND t.chat_id = mu.chat_id AND mu.mute_type = 'all'
-                 WHERE t.chat_id = ? AND t.tag_name = ? AND mu.user_id IS NULL".to_string();
-                (q, params![chat_id, tag_name])
+                 WHERE t.chat_id = ? AND t.tag_name = ? AND mu.user_id IS NULL";
+                let mut stmt = conn.prepare(q)?;
+                let rows = stmt.query_map(params![chat_id, tag_name], |row| {
+                    Ok(TagUserInfo {
+                        info: UserInfo {
+                            id: row.get(0)?,
+                            username: row.get(1)?,
+                            first_name: row.get(2)?,
+                        },
+                        is_private: row.get(3)?,
+                    })
+                })?;
+                for user in rows {
+                    users.push(user?);
+                }
             };
-
-            let mut stmt = conn.prepare(&query)?;
-            let rows = stmt.query_map(params_vec, |row| {
-                Ok(TagUserInfo {
-                    info: UserInfo {
-                        id: row.get(0)?,
-                        username: row.get(1)?,
-                        first_name: row.get(2)?,
-                    },
-                    is_private: row.get(3)?,
-                })
-            })?;
-
-            let mut users = Vec::new();
-            for user in rows {
-                users.push(user?);
-            }
             Ok(users)
         }).await
     }
