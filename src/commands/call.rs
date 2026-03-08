@@ -37,18 +37,12 @@ pub async fn handle_call(ctx: CommandContext, tag: Tag) -> anyhow::Result<()> {
             .await?;
 
         // Also send direct messages to users who have started the bot privately
-        let from_chat_title = ctx.msg.chat.title().unwrap_or("этой группе");
-        let from_name = format!(
-            "{} ({})",
-            html::escape(
-                &ctx.msg
-                    .from
-                    .as_ref()
-                    .map(|u| u.first_name.clone())
-                    .unwrap_or_else(|| "Кто-то".to_string())
-            ),
-            html::escape(from_chat_title)
-        );
+        let group_name = ctx.msg.chat.title().unwrap_or("этой группе");
+        let caller_name = ctx.msg
+            .from
+            .as_ref()
+            .map(|u| u.first_name.clone())
+            .unwrap_or_else(|| "Кто-то".to_string());
 
         let dm_futures = users_to_call
             .into_iter()
@@ -56,11 +50,12 @@ pub async fn handle_call(ctx: CommandContext, tag: Tag) -> anyhow::Result<()> {
             .map(|user| {
                 let bot = ctx.bot.clone();
                 let tag_name = tag.as_ref().to_string();
-                let from_name = from_name.clone();
+                let caller_name = html::escape(&caller_name);
+                let group_name = html::escape(group_name);
                 async move {
                     let dm_message = format!(
-                        "🔔 Вас вызвали в {} по тегу '{}'!",
-                        from_name, tag_name
+                        "🔔 Вас вызвал/а {} в группе {} по тегу '{}'!",
+                        caller_name, group_name, tag_name
                     );
                     let _ = bot
                         .send_message(teloxide::types::ChatId(user.info.id as i64), dm_message)
