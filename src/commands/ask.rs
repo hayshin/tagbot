@@ -20,7 +20,6 @@ pub async fn handle_ask(ctx: CommandContext, input: String) -> anyhow::Result<()
             .get_tag_users(
                 ctx.msg.chat.id.0,
                 potential_tag.to_string(),
-                Some("ask".to_string()),
             )
             .await?;
         if !users.is_empty() {
@@ -30,14 +29,14 @@ pub async fn handle_ask(ctx: CommandContext, input: String) -> anyhow::Result<()
         } else {
             // Fallback to "all" tag with full input as question
             ctx.db
-                .get_tag_users(ctx.msg.chat.id.0, tag.to_string(), Some("ask".to_string()))
+                .get_tag_users(ctx.msg.chat.id.0, tag.to_string())
                 .await?
         }
     } else {
         // Empty input: use "all" tag
         question = "".to_string();
         ctx.db
-            .get_tag_users(ctx.msg.chat.id.0, tag.to_string(), Some("ask".to_string()))
+            .get_tag_users(ctx.msg.chat.id.0, tag.to_string())
             .await?
     };
 

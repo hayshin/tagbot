@@ -6,7 +6,7 @@ use teloxide::utils::markdown;
 pub async fn handle_call(ctx: CommandContext, tag: Tag) -> anyhow::Result<()> {
     let users_to_call = ctx
         .db
-        .get_tag_users(ctx.msg.chat.id.0, tag.as_ref().to_string(), None)
+        .get_tag_users(ctx.msg.chat.id.0, tag.as_ref().to_string())
         .await?;
 
     if users_to_call.is_empty() {

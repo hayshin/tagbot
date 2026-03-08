@@ -153,7 +153,6 @@ impl Database {
         &self,
         chat_id: i64,
         tag_name: String,
-        filter_mute_type: Option<String>,
     ) -> Result<Vec<TagUserInfo>> {
         self.conn.call(move |conn| {
             let mut users = Vec::new();
@@ -164,10 +163,10 @@ impl Database {
                  WHERE t.chat_id = ? AND t.tag_name = ?
                  AND u.user_id NOT IN (
                      SELECT user_id FROM muted_users
-                     WHERE chat_id = ? AND (mute_type = 'all' OR (? IS NOT NULL AND mute_type = ?))
+                     WHERE chat_id = ? AND mute_type = ?
                  )";
             let mut stmt = conn.prepare(q)?;
-            let rows = stmt.query_map(params![chat_id, tag_name, chat_id, filter_mute_type, filter_mute_type], |row| {
+            let rows = stmt.query_map(params![chat_id, tag_name.clone(), chat_id, tag_name], |row| {
                 Ok(TagUserInfo {
                     info: UserInfo {
                         id: row.get(0)?,
@@ -199,19 +198,6 @@ impl Database {
                     tags.push(tag?);
                 }
                 Ok(tags)
-            })
-            .await
-    }
-
-    pub async fn get_muted_count(&self, chat_id: i64) -> Result<i64> {
-        self.conn
-            .call(move |conn| {
-                let count: i64 = conn.query_row(
-                    "SELECT COUNT(*) FROM muted_users WHERE chat_id = ? AND mute_type = 'all'",
-                    params![chat_id],
-                    |row| row.get(0),
-                )?;
-                Ok(count)
             })
             .await
     }

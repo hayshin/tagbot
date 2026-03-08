@@ -4,18 +4,10 @@ use teloxide::utils::markdown;
 
 pub async fn handle_list(ctx: CommandContext) -> anyhow::Result<()> {
     let tags = ctx.db.list_tags(ctx.msg.chat.id.0).await?;
-    let muted_count = ctx.db.get_muted_count(ctx.msg.chat.id.0).await?;
 
     if tags.is_empty() {
         ctx.bot
-            .send_message(
-                ctx.msg.chat.id,
-                format!(
-                    "No tags exist in this group yet.
-Muted users: {}",
-                    muted_count
-                ),
-            )
+            .send_message(ctx.msg.chat.id, "No tags exist in this group yet.")
             .await?;
     } else {
         let mut tag_list = Vec::new();
@@ -29,14 +21,11 @@ Muted users: {}",
 
         let message = format!(
             "Tags in this group:
-{}
-
-Muted users: {}",
+{}",
             tag_list.join(
                 "
 "
-            ),
-            muted_count
+            )
         );
         ctx.bot
             .send_message(ctx.msg.chat.id, message)

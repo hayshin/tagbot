@@ -51,9 +51,9 @@ impl AsRef<str> for Tag {
 pub enum Command {
     #[command(description = "get started with the bot")]
     Start,
-    #[command(description = "mute yourself: /mute [ask] (default to 'all')")]
+    #[command(description = "mute yourself for a specific tag: /mute <tag_name>")]
     Mute(String),
-    #[command(description = "unmute yourself: /unmute [ask] (default to 'all')")]
+    #[command(description = "unmute yourself for a specific tag: /unmute <tag_name>")]
     Unmute(String),
     #[command(description = "leave a tag: /left [tag_name] (defaults to 'all')")]
     Left(String),
