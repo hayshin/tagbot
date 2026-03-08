@@ -26,7 +26,8 @@ async fn main() {
     let storage: BotStorage = Arc::new(db);
 
     let handler = Update::filter_message()
-        .branch(dptree::entry().filter_command::<Command>().endpoint(answer));
+        .branch(dptree::entry().filter_command::<Command>().endpoint(answer))
+        .branch(dptree::entry().endpoint(handle_maybe_plain_command));
 
     Dispatcher::builder(bot, handler)
         .dependencies(dptree::deps![storage, me])
@@ -37,6 +38,45 @@ async fn main() {
 }
 
 async fn answer(bot: Bot, msg: Message, cmd: Command, storage: BotStorage) -> anyhow::Result<()> {
+    process_command(bot, msg, cmd, storage).await
+}
+
+async fn handle_maybe_plain_command(
+    bot: Bot,
+    msg: Message,
+    storage: BotStorage,
+) -> anyhow::Result<()> {
+    if let Some(text) = msg.text() {
+        let (cmd_name, args) = match text.split_once(' ') {
+            Some((name, args)) => (name, args),
+            None => (text, ""),
+        };
+
+        let cmd = match cmd_name.to_lowercase().as_str() {
+            "ask" => Some(Command::Ask(args.to_string())),
+            "call" => Some(Command::Call(args.to_string())),
+            "join" => Some(Command::Join(args.to_string())),
+            "left" | "leave" => Some(Command::Left(args.to_string())),
+            "list" => Some(Command::List),
+            "mute" => Some(Command::Mute(args.to_string())),
+            "unmute" => Some(Command::Unmute(args.to_string())),
+            "help" => Some(Command::Help),
+            _ => None,
+        };
+
+        if let Some(cmd) = cmd {
+            return process_command(bot, msg, cmd, storage).await;
+        }
+    }
+    Ok(())
+}
+
+async fn process_command(
+    bot: Bot,
+    msg: Message,
+    cmd: Command,
+    storage: BotStorage,
+) -> anyhow::Result<()> {
     // Basic user registration and upsert
     if let Some(user) = &msg.from {
         let user_info = UserInfo {
