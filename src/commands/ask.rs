@@ -47,7 +47,7 @@ pub async fn handle_ask(ctx: CommandContext, input: String) -> anyhow::Result<()
                 ctx.msg.chat.id,
                 &format!(
                     "No users in tag '{}' (or they are all muted for /ask)",
-                    markdown::escape(tag.as_ref())
+                    tag.as_ref()
                 ),
             )
             .await?;

@@ -38,7 +38,10 @@ Muted users: {}",
             ),
             muted_count
         );
-        ctx.bot.send_message(ctx.msg.chat.id, message).await?;
+        ctx.bot
+            .send_message(ctx.msg.chat.id, message)
+            .parse_mode(teloxide::types::ParseMode::MarkdownV2)
+            .await?;
     }
     Ok(())
 }

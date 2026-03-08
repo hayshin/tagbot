@@ -17,6 +17,8 @@ async fn main() {
     log::info!("Starting tag bot...");
 
     let bot = Bot::from_env();
+    let me = bot.get_me().await.expect("Failed to get bot info");
+
     let db_path = std::env::var("DATABASE_URL").unwrap_or_else(|_| "tagbot.db".to_string());
     let db = Database::new(&db_path)
         .await
@@ -27,7 +29,7 @@ async fn main() {
         .branch(dptree::entry().filter_command::<Command>().endpoint(answer));
 
     Dispatcher::builder(bot, handler)
-        .dependencies(dptree::deps![storage])
+        .dependencies(dptree::deps![storage, me])
         .enable_ctrlc_handler()
         .build()
         .dispatch()

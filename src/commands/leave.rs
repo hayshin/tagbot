@@ -1,5 +1,4 @@
 use crate::commands::{BotResponseExt, CommandContext, Tag};
-use teloxide::utils::markdown;
 
 pub async fn handle_leave(ctx: CommandContext, tag: Tag) -> anyhow::Result<()> {
     if ctx
@@ -10,10 +9,7 @@ pub async fn handle_leave(ctx: CommandContext, tag: Tag) -> anyhow::Result<()> {
         ctx.bot
             .send_success_msg(
                 ctx.msg.chat.id,
-                &format!(
-                    "You have been removed from tag '{}'",
-                    markdown::escape(tag.as_ref())
-                ),
+                &format!("You have been removed from tag '{}'", tag.as_ref()),
             )
             .await?;
     } else {
@@ -22,7 +18,7 @@ pub async fn handle_leave(ctx: CommandContext, tag: Tag) -> anyhow::Result<()> {
                 ctx.msg.chat.id,
                 &format!(
                     "You are not in tag '{}' or it doesn't exist",
-                    markdown::escape(tag.as_ref())
+                    tag.as_ref()
                 ),
             )
             .await?;
