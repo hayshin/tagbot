@@ -5,13 +5,17 @@ on:
     tags:
       - 'v*'
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
   packages: write
 
 jobs:
   release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
@@ -23,17 +27,15 @@ jobs:
 
       - name: Build Binary and Docker Image
         run: |
+          set -euo pipefail
           # Build the binary for the GitHub Release
-          nix build .#default -o result-bin
           # Build the Docker image (Nix reuses the binary build from above)
-          nix build .#dockerImage -o result-docker
+          nix build .#default .#dockerImage -o result-bin -o result-docker
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: result-bin/bin/tagbot
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -44,16 +46,21 @@ jobs:
 
       - name: Load, Tag and Push Docker Image
         run: |
-          docker load < result-docker
-          
+          set -euo pipefail
+          LOADED_IMAGE=$(docker load < result-docker | awk '/Loaded image:/ {print $3}')
+          if [ -z "$LOADED_IMAGE" ]; then
+            echo "Failed to detect loaded image name from docker load output" >&2
+            exit 1
+          fi
+
           IMAGE_NAME=ghcr.io/${{ github.repository }}
           IMAGE_NAME=$(echo "$IMAGE_NAME" | tr '[:upper:]' '[:lower:]')
           
           TAG_LATEST=$IMAGE_NAME:latest
           TAG_VERSION=$IMAGE_NAME:${{ github.ref_name }}
           
-          docker tag tagbot:latest $TAG_LATEST
-          docker tag tagbot:latest $TAG_VERSION
+          docker tag "$LOADED_IMAGE" "$TAG_LATEST"
+          docker tag "$LOADED_IMAGE" "$TAG_VERSION"
           
-          docker push $TAG_LATEST
-          docker push $TAG_VERSION
+          docker push "$TAG_LATEST"
+          docker push "$TAG_VERSION"
