@@ -22,7 +22,7 @@ A Telegram bot built with Rust and Teloxide that allows users to create and mana
 
 ## Deployment
 
-### GitHub Actions (Recommended)
+### GitHub Actions (Automated)
 
 1. Push your code to a GitHub repository.
 2. Create a tag: `git tag v1.0.0 && git push origin v1.0.0`.
@@ -30,36 +30,55 @@ A Telegram bot built with Rust and Teloxide that allows users to create and mana
    - Build a release binary and attach it to a new GitHub Release.
    - Build and push a Docker image to GitHub Container Registry (`ghcr.io`).
 
-### Manual Deployment (VPS)
+### Nix Deployment (Manual)
 
-1. Install Docker and Docker Compose on your server.
-2. Copy `docker-compose.yml` to your server.
-3. Create a `.env` file with `TELOXIDE_TOKEN`.
-4. Run: `docker compose up -d`.
+If you have Nix installed with flakes enabled:
+
+1. **Build and Run Locally:**
+   ```bash
+   nix run .
+   ```
+
+2. **Build Docker Image:**
+   ```bash
+   # Build the image
+   nix build .#dockerImage
+   
+   # Load it into your local Docker daemon
+   docker load < result
+   
+   # Run the container
+   docker run -d \
+     --name tagbot \
+     -v ./data:/app/data \
+     -e TELOXIDE_TOKEN=your_token \
+     -e DATABASE_URL=/app/data/tagbot.db \
+     tagbot:latest
+   ```
 
 ### Binary Deployment
 
 1. Download the latest binary from [Releases](../../releases).
-2. Set environment variables:
+2. Create a `.env` file (see `.env.example`):
    - `TELOXIDE_TOKEN=your_token`
-   - `DATABASE_URL=./data/tagbot.db`
-3. Run: `./telegram-tag-bot`.
+   - `DATABASE_URL=./tagbot.db`
+3. Run: `./tagbot`.
 
 ## Usage Example
 
-1. Add the bot to your Telegram group
+1. Add the bot to your Telegram group.
 2. Users can join tags:
    - `/join developers`
    - `/join designers`
-   - `/join` - join the default "all" tag
+   - `/join` - join the default "all" tag.
 3. Call specific groups:
-   - `/call developers` - mentions all users in the "developers" tag
-   - `/call` - mentions all non-muted users (the default "all" tag)
+   - `/call developers` - mentions all users in the "developers" tag.
+   - `/call` - mentions all non-muted users (the default "all" tag).
 4. Leave tags:
    - `/left developers`
-   - `/left` - leave the "all" tag
+   - `/left` - leave the "all" tag.
 5. Mute yourself to avoid group mentions:
-   - `/mute`
+   - `/mute`.
 
 ## Project Structure
 
@@ -78,15 +97,15 @@ A Telegram bot built with Rust and Teloxide that allows users to create and mana
 │       ├── mute.rs      # /mute handler
 │       └── unmute.rs    # /unmute handler
 ├── Cargo.toml           # Rust dependencies
-├── Dockerfile           # Docker build instructions
-├── docker-compose.yml   # Docker Compose configuration
+├── flake.nix            # Nix flake configuration
+├── .env.example         # Environment variable template
 └── README.md           # This file
 ```
 
 ## Notes
 
-- Data is persisted in a SQLite database (`tagbot.db`)
-- Each group maintains its own separate tag system
-- Muted users are excluded from `/call` results
-- Users can only add/remove themselves, not other users
+- Data is persisted in a SQLite database (`tagbot.db`).
+- Each group maintains its own separate tag system.
+- Muted users are excluded from `/call` results.
+- Users can only add/remove themselves, not other users.
 - **Private Notifications**: To receive direct messages when you're called in a group, you MUST start a private chat with the bot (send any message to it).
