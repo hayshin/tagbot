@@ -191,11 +191,3 @@ impl Database {
         }).await
     }
 
-    pub async fn tag_exists(&self, chat_id: i64, tag_name: String) -> Result<bool> {
-        self.conn.call(move |conn| {
-            let mut stmt = conn.prepare("SELECT 1 FROM user_tags WHERE chat_id = ? AND tag_name = ? LIMIT 1")?;
-            let exists = stmt.exists(params![chat_id, tag_name])?;
-            Ok(exists)
-        }).await
-    }
-}
