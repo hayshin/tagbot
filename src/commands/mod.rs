@@ -49,6 +49,8 @@ impl AsRef<str> for Tag {
 #[derive(BotCommands, Clone)]
 #[command(rename_rule = "lowercase", description = "Available commands:")]
 pub enum Command {
+    #[command(description = "get started with the bot")]
+    Start,
     #[command(description = "mute yourself: /mute [ask] (default to 'all')")]
     Mute(String),
     #[command(description = "unmute yourself: /unmute [ask] (default to 'all')")]
@@ -71,6 +73,14 @@ pub enum Command {
 
 pub async fn handle_command(ctx: CommandContext, cmd: Command) -> anyhow::Result<()> {
     match cmd {
+        Command::Start => {
+            let welcome = format!(
+                "Welcome, {}! 👋\n\nI am a tag bot. You can join tags and be called when someone needs you.\n\n{}",
+                ctx.user.first_name,
+                Command::descriptions()
+            );
+            ctx.bot.send_message(ctx.msg.chat.id, welcome).await?;
+        }
         Command::Help => {
             ctx.bot
                 .send_message(ctx.msg.chat.id, Command::descriptions().to_string())
