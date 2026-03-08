@@ -1,6 +1,6 @@
+use async_trait::async_trait;
 use teloxide::prelude::*;
 use teloxide::types::{ParseMode, Recipient};
-use async_trait::async_trait;
 
 #[async_trait]
 pub trait BotResponseExt {

@@ -15,7 +15,11 @@ impl UserInfo {
         match &self.username {
             Some(username) => format!("@{}", markdown::escape(username)),
             None => {
-                format!("[{}](tg://user?id={})", markdown::escape(&self.first_name), self.id)
+                format!(
+                    "[{}](tg://user?id={})",
+                    markdown::escape(&self.first_name),
+                    self.id
+                )
             }
         }
     }

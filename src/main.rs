@@ -1,13 +1,13 @@
+mod commands;
 mod db;
 mod models;
-mod commands;
 
+use commands::Command;
 use db::Database;
 use models::UserInfo;
-use commands::Command;
 
-use teloxide::prelude::*;
 use std::sync::Arc;
+use teloxide::prelude::*;
 
 type BotStorage = Arc<Database>;
 
@@ -18,15 +18,13 @@ async fn main() {
 
     let bot = Bot::from_env();
     let db_path = std::env::var("DATABASE_URL").unwrap_or_else(|_| "tagbot.db".to_string());
-    let db = Database::new(&db_path).await.expect("Failed to initialize database");
+    let db = Database::new(&db_path)
+        .await
+        .expect("Failed to initialize database");
     let storage: BotStorage = Arc::new(db);
 
     let handler = Update::filter_message()
-        .branch(
-            dptree::entry()
-                .filter_command::<Command>()
-                .endpoint(answer)
-        );
+        .branch(dptree::entry().filter_command::<Command>().endpoint(answer));
 
     Dispatcher::builder(bot, handler)
         .dependencies(dptree::deps![storage])
@@ -36,12 +34,7 @@ async fn main() {
         .await;
 }
 
-async fn answer(
-    bot: Bot,
-    msg: Message,
-    cmd: Command,
-    storage: BotStorage,
-) -> anyhow::Result<()> {
+async fn answer(bot: Bot, msg: Message, cmd: Command, storage: BotStorage) -> anyhow::Result<()> {
     // Basic user registration and upsert
     if let Some(user) = &msg.from {
         let user_info = UserInfo {
@@ -65,7 +58,8 @@ async fn answer(
 
         commands::handle_command(ctx, cmd).await?;
     } else {
-        bot.send_message(msg.chat.id, "Cannot identify user").await?;
+        bot.send_message(msg.chat.id, "Cannot identify user")
+            .await?;
     }
 
     Ok(())
