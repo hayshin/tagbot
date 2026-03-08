@@ -6,7 +6,7 @@ use teloxide::types::ReplyParameters;
 pub async fn handle_ask(ctx: CommandContext, input: String) -> anyhow::Result<()> {
     let input = input.trim();
 
-    let mut tag = Tag::new("all".to_string());
+    let mut tag = Tag::new("алл".to_string());
 
     let users = if !input.is_empty() {
         let first_word = input.split(' ').next().unwrap_or("");
@@ -23,13 +23,13 @@ pub async fn handle_ask(ctx: CommandContext, input: String) -> anyhow::Result<()
             tag = potential_tag;
             users
         } else {
-            // Fallback to "all" tag
+            // Fallback to "алл" tag
             ctx.db
                 .get_tag_users(ctx.msg.chat.id.0, tag.to_string())
                 .await?
         }
     } else {
-        // Empty input: use "all" tag
+        // Empty input: use "алл" tag
         ctx.db
             .get_tag_users(ctx.msg.chat.id.0, tag.to_string())
             .await?

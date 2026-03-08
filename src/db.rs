@@ -46,7 +46,7 @@ impl Database {
                     "CREATE TABLE IF NOT EXISTS muted_users (
                     chat_id INTEGER,
                     user_id INTEGER,
-                    mute_type TEXT DEFAULT 'all',
+                    mute_type TEXT DEFAULT 'алл',
                     PRIMARY KEY (chat_id, user_id, mute_type),
                     FOREIGN KEY (user_id) REFERENCES users (user_id)
                 )",
@@ -64,7 +64,7 @@ impl Database {
                 // Migration: if the table was created without mute_type, the PRIMARY KEY might be different.
                 // For a simple SQLite setup, we can try to add the column if it doesn't exist.
                 let _ = conn.execute(
-                    "ALTER TABLE muted_users ADD COLUMN mute_type TEXT DEFAULT 'all'",
+                    "ALTER TABLE muted_users ADD COLUMN mute_type TEXT DEFAULT 'алл'",
                     [],
                 );
                 Ok(())

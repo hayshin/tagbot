@@ -26,82 +26,25 @@ pub struct Tag(String);
 pub fn normalize_word(word: &str) -> String {
     let word = word.trim().to_lowercase();
 
-    // 1. Explicit command/special keyword overrides
-    let mapped = match word.as_str() {
-        "аск" => "ask",
-        "калл" | "колл" => "call",
-        "лив" => "leave",
-        "джоин" | "жоин" => "join",
-        "лист" => "list",
-        "мьют" | "мут" => "mute",
-        "анмьют" | "анмут" => "unmute",
-        "хелп" | "помощь" => "help",
-        "алл" | "все" | "всё" => "all",
-        _ => "",
-    };
-
-    if !mapped.is_empty() {
-        return mapped.to_string();
+    match word.as_str() {
+        "аск" => "ask".to_string(),
+        "калл" | "колл" => "call".to_string(),
+        "лив" => "leave".to_string(),
+        "джоин" | "жоин" => "join".to_string(),
+        "лист" => "list".to_string(),
+        "мьют" | "мут" => "mute".to_string(),
+        "анмьют" | "анмут" => "unmute".to_string(),
+        "хелп" | "помощь" => "help".to_string(),
+        other => other.to_string(),
     }
-
-    // 2. Fallback to general transliteration for all other tags
-    transliterate(&word)
-}
-
-fn transliterate(s: &str) -> String {
-    let mut res = String::with_capacity(s.len());
-    for c in s.chars() {
-        let replacement = match c {
-            'а' => "a",
-            'б' => "b",
-            'в' => "v",
-            'г' => "g",
-            'д' => "d",
-            'е' => "e",
-            'ё' => "e",
-            'ж' => "zh",
-            'з' => "z",
-            'и' => "i",
-            'й' => "y",
-            'к' => "k",
-            'л' => "l",
-            'м' => "m",
-            'н' => "n",
-            'о' => "o",
-            'п' => "p",
-            'р' => "r",
-            'с' => "s",
-            'т' => "t",
-            'у' => "u",
-            'ф' => "f",
-            'х' => "h",
-            'ц' => "c",
-            'ч' => "ch",
-            'ш' => "sh",
-            'щ' => "sch",
-            'ъ' => "",
-            'ы' => "y",
-            'ь' => "",
-            'э' => "e",
-            'ю' => "yu",
-            'я' => "ya",
-            _ => {
-                res.push(c);
-                continue;
-            }
-        };
-        res.push_str(replacement);
-    }
-    res
 }
 
 impl Tag {
     pub fn new(raw: String) -> Self {
-        let normalized = normalize_word(&raw);
-        if normalized.is_empty() {
-            Self("all".to_string())
-        } else {
-            Self(normalized)
+        let trimmed = raw.trim().to_lowercase();
+        match trimmed.as_str() {
+            "" | "all" | "все" | "всё" => Self("алл".to_string()),
+            other => Self(other.to_string()),
         }
     }
 }
@@ -127,19 +70,20 @@ pub enum Command {
     Mute(String),
     #[command(description = "размутить тег: /unmute <название_тега>")]
     Unmute(String),
-    #[command(description = "выйти из тега: /leave [название_тега] (по умолчанию 'all')")]
+    #[command(description = "выйти из тега: /leave [название_тега] (по умолчанию 'алл')")]
     Leave(String),
-    #[command(description = "войти в тег: /join [название_тега] (по умолчанию 'all')")]
+    #[command(description = "войти в тег: /join [название_тега] (по умолчанию 'алл')")]
     Join(String),
-    #[command(description = "вызвать всех участников тега: /call [название_тега] (по умолчанию 'all')")]
+    #[command(description = "вызвать всех участников тега: /call [название_тега] (по умолчанию 'алл')")]
     Call(String),
-    #[command(description = "выбрать случайного участника тега: /ask [название_тега] (по умолчанию 'all')")]
+    #[command(description = "выбрать случайного участника тега: /ask [название_тега] (по умолчанию 'алл')")]
     Ask(String),
     #[command(description = "показать список всех тегов в группе")]
     List,
     #[command(description = "показать справку по командам")]
     Help,
 }
+
 
 pub async fn handle_command(ctx: CommandContext, cmd: Command) -> anyhow::Result<()> {
     match cmd {
