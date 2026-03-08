@@ -14,7 +14,7 @@ A Telegram bot built with Rust and Teloxide that allows users to create and mana
 - `/mute` - Mute yourself (you won't be called in group mentions)
 - `/unmute` - Unmute yourself (you will be called in group mentions again)
 - `/join [tag_name]` - Join a specific tag (defaults to "all")
-- `/left [tag_name]` - Leave a specific tag (defaults to "all")
+- `/leave [tag_name]` - Leave a specific tag (defaults to "all")
 - `/call [tag_name]` - Mention all users in the specified tag (or all non-muted users if "all" or no tag specified)
 - `/ask [tag_name] [question]` - Pick a random user from the tag and respond with the question
 - `/list` - List all tags in this group
@@ -75,8 +75,8 @@ If you have Nix installed with flakes enabled:
    - `/call developers` - mentions all users in the "developers" tag.
    - `/call` - mentions all non-muted users (the default "all" tag).
 4. Leave tags:
-   - `/left developers`
-   - `/left` - leave the "all" tag.
+   - `/leave developers`
+   - `/leave` - leave the "all" tag.
 5. Mute yourself to avoid group mentions:
    - `/mute`.
 
@@ -92,7 +92,7 @@ If you have Nix installed with flakes enabled:
 │       ├── mod.rs       # Command definition
 │       ├── call.rs      # /call handler
 │       ├── join.rs      # /join handler
-│       ├── leave.rs     # /left handler
+│       ├── leave.rs     # /leave handler
 │       ├── list.rs      # /list handler
 │       ├── mute.rs      # /mute handler
 │       └── unmute.rs    # /unmute handler

@@ -23,13 +23,85 @@ pub struct CommandContext {
 
 pub struct Tag(String);
 
+pub fn normalize_word(word: &str) -> String {
+    let word = word.trim().to_lowercase();
+
+    // 1. Explicit command/special keyword overrides
+    let mapped = match word.as_str() {
+        "аск" => "ask",
+        "калл" | "колл" => "call",
+        "лив" => "leave",
+        "джоин" | "жоин" => "join",
+        "лист" => "list",
+        "мьют" | "мут" => "mute",
+        "анмьют" | "анмут" => "unmute",
+        "хелп" | "помощь" => "help",
+        "алл" | "все" | "всё" => "all",
+        _ => "",
+    };
+
+    if !mapped.is_empty() {
+        return mapped.to_string();
+    }
+
+    // 2. Fallback to general transliteration for all other tags
+    transliterate(&word)
+}
+
+fn transliterate(s: &str) -> String {
+    let mut res = String::with_capacity(s.len());
+    for c in s.chars() {
+        let replacement = match c {
+            'а' => "a",
+            'б' => "b",
+            'в' => "v",
+            'г' => "g",
+            'д' => "d",
+            'е' => "e",
+            'ё' => "e",
+            'ж' => "zh",
+            'з' => "z",
+            'и' => "i",
+            'й' => "y",
+            'к' => "k",
+            'л' => "l",
+            'м' => "m",
+            'н' => "n",
+            'о' => "o",
+            'п' => "p",
+            'р' => "r",
+            'с' => "s",
+            'т' => "t",
+            'у' => "u",
+            'ф' => "f",
+            'х' => "h",
+            'ц' => "c",
+            'ч' => "ch",
+            'ш' => "sh",
+            'щ' => "sch",
+            'ъ' => "",
+            'ы' => "y",
+            'ь' => "",
+            'э' => "e",
+            'ю' => "yu",
+            'я' => "ya",
+            _ => {
+                res.push(c);
+                continue;
+            }
+        };
+        res.push_str(replacement);
+    }
+    res
+}
+
 impl Tag {
     pub fn new(raw: String) -> Self {
-        let trimmed = raw.trim();
-        if trimmed.is_empty() {
+        let normalized = normalize_word(&raw);
+        if normalized.is_empty() {
             Self("all".to_string())
         } else {
-            Self(trimmed.to_lowercase())
+            Self(normalized)
         }
     }
 }
@@ -55,8 +127,8 @@ pub enum Command {
     Mute(String),
     #[command(description = "unmute yourself for a specific tag: /unmute <tag_name>")]
     Unmute(String),
-    #[command(description = "leave a tag: /left [tag_name] (defaults to 'all')")]
-    Left(String),
+    #[command(description = "leave a tag: /leave [tag_name] (defaults to 'all')")]
+    Leave(String),
     #[command(description = "join a tag: /join [tag_name] (defaults to 'all')")]
     Join(String),
     #[command(description = "call all users in a tag: /call [tag_name] (defaults to 'all')")]
@@ -95,7 +167,7 @@ pub async fn handle_command(ctx: CommandContext, cmd: Command) -> anyhow::Result
         Command::Join(tag) => {
             join::handle_join(ctx, Tag::new(tag)).await?;
         }
-        Command::Left(tag) => {
+        Command::Leave(tag) => {
             leave::handle_leave(ctx, Tag::new(tag)).await?;
         }
         Command::List => {
