@@ -1,21 +1,20 @@
 use teloxide::prelude::*;
 use teloxide::utils::markdown;
 use futures::future::join_all;
-use crate::commands::{normalize_tag, CommandContext};
+use crate::commands::{Tag, CommandContext};
 
-pub async fn handle_call(ctx: CommandContext, tag_name: String) -> anyhow::Result<()> {
-    let tag_name = normalize_tag(tag_name);
-    let users_to_call = ctx.db.get_tag_users(ctx.msg.chat.id.0, tag_name.clone(), None).await?;
+pub async fn handle_call(ctx: CommandContext, tag: Tag) -> anyhow::Result<()> {
+    let users_to_call = ctx.db.get_tag_users(ctx.msg.chat.id.0, tag.as_ref().to_string(), None).await?;
 
     if users_to_call.is_empty() {
-        ctx.bot.send_message(ctx.msg.chat.id, format!("No users in tag '{}' (or they are all muted)", markdown::escape(&tag_name))).await?;
+        ctx.bot.send_message(ctx.msg.chat.id, format!("No users in tag '{}' (or they are all muted)", markdown::escape(tag.as_ref()))).await?;
     } else {
         let mentions: Vec<String> = users_to_call
             .iter()
             .map(|user| user.info.mention())
             .collect();
 
-        let message = format!("Calling tag '{}': {}", markdown::escape(&tag_name), mentions.join(" "));
+        let message = format!("Calling tag '{}': {}", markdown::escape(tag.as_ref()), mentions.join(" "));
 
         ctx.bot.send_message(ctx.msg.chat.id, message)
             .parse_mode(teloxide::types::ParseMode::MarkdownV2)
@@ -30,7 +29,7 @@ pub async fn handle_call(ctx: CommandContext, tag_name: String) -> anyhow::Resul
 
         let dm_futures = users_to_call.into_iter().filter(|u| u.is_private).map(|user| {
             let bot = ctx.bot.clone();
-            let tag_name = tag_name.clone();
+            let tag_name = tag.as_ref().to_string();
             let from_name = from_name.clone();
             async move {
                 let dm_message = format!("🔔 You were called in {} for tag '{}'!", from_name, tag_name);

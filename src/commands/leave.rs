@@ -1,18 +1,17 @@
 use teloxide::prelude::*;
 use teloxide::utils::markdown;
-use crate::commands::{normalize_tag, CommandContext};
+use crate::commands::{Tag, CommandContext};
 
-pub async fn handle_leave(ctx: CommandContext, tag_name: String) -> anyhow::Result<()> {
-    let tag_name = normalize_tag(tag_name);
-    if ctx.db.leave_tag(ctx.msg.chat.id.0, tag_name.clone(), ctx.user.id).await? {
+pub async fn handle_leave(ctx: CommandContext, tag: Tag) -> anyhow::Result<()> {
+    if ctx.db.leave_tag(ctx.msg.chat.id.0, tag.as_ref().to_string(), ctx.user.id).await? {
         ctx.bot.send_message(
             ctx.msg.chat.id,
-            format!("You have been removed from tag '{}'", markdown::escape(&tag_name)),
+            format!("You have been removed from tag '{}'", markdown::escape(tag.as_ref())),
         ).await?;
     } else {
         ctx.bot.send_message(
             ctx.msg.chat.id,
-            format!("You are not in tag '{}' or it doesn't exist", markdown::escape(&tag_name)),
+            format!("You are not in tag '{}' or it doesn't exist", markdown::escape(tag.as_ref())),
         ).await?;
     }
     Ok(())

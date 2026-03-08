@@ -18,6 +18,31 @@ pub struct CommandContext {
     pub user: UserInfo,
 }
 
+pub struct Tag(String);
+
+impl Tag {
+    pub fn new(raw: String) -> Self {
+        let trimmed = raw.trim();
+        if trimmed.is_empty() {
+            Self("all".to_string())
+        } else {
+            Self(trimmed.to_lowercase())
+        }
+    }
+}
+
+impl std::fmt::Display for Tag {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl AsRef<str> for Tag {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
 #[derive(BotCommands, Clone)]
 #[command(rename_rule = "lowercase", description = "Available commands:")]
 pub enum Command {
@@ -51,29 +76,20 @@ pub async fn handle_command(ctx: CommandContext, cmd: Command) -> anyhow::Result
             mute::handle_unmute(ctx, arg).await?;
         }
         Command::Join(tag) => {
-            join::handle_join(ctx, tag).await?;
+            join::handle_join(ctx, Tag::new(tag)).await?;
         }
         Command::Left(tag) => {
-            leave::handle_leave(ctx, tag).await?;
+            leave::handle_leave(ctx, Tag::new(tag)).await?;
         }
         Command::List => {
             list::handle_list(ctx).await?;
         }
         Command::Call(tag) => {
-            call::handle_call(ctx, tag).await?;
+            call::handle_call(ctx, Tag::new(tag)).await?;
         }
         Command::Ask(input) => {
             ask::handle_ask(ctx, input).await?;
         }
     }
     Ok(())
-}
-
-pub fn normalize_tag(tag: String) -> String {
-    let t = tag.trim();
-    if t.is_empty() {
-        "all".to_string()
-    } else {
-        t.to_lowercase()
-    }
 }
