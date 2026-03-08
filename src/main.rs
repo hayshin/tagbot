@@ -6,7 +6,7 @@ use db::Database;
 use models::UserInfo;
 use commands::Command;
 
-use teloxide::{prelude::*, utils::command::BotCommands};
+use teloxide::prelude::*;
 use std::sync::Arc;
 
 type BotStorage = Arc<Database>;
@@ -56,32 +56,14 @@ async fn answer(
             storage.upsert_user(&user_info).await?;
         }
 
-        match cmd {
-            Command::Help => {
-                bot.send_message(msg.chat.id, Command::descriptions().to_string()).await?;
-            }
-            Command::Mute(arg) => {
-                commands::mute::handle_mute(bot, msg, storage, arg).await?;
-            }
-            Command::Unmute(arg) => {
-                commands::unmute::handle_unmute(bot, msg, storage, arg).await?;
-            }
-            Command::Join(tag) => {
-                commands::join::handle_join(bot, msg, storage, tag).await?;
-            }
-            Command::Left(tag) => {
-                commands::leave::handle_leave(bot, msg, storage, tag).await?;
-            }
-            Command::List => {
-                commands::list::handle_list(bot, msg, storage).await?;
-            }
-            Command::Call(tag) => {
-                commands::call::handle_call(bot, msg, storage, tag).await?;
-            }
-            Command::Ask(input) => {
-                commands::ask::handle_ask(bot, msg, storage, input).await?;
-            }
-        }
+        let ctx = commands::CommandContext {
+            bot,
+            msg,
+            db: storage,
+            user: user_info,
+        };
+
+        commands::handle_command(ctx, cmd).await?;
     } else {
         bot.send_message(msg.chat.id, "Cannot identify user").await?;
     }

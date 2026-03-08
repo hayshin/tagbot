@@ -1,4 +1,8 @@
+use teloxide::prelude::*;
 use teloxide::utils::command::BotCommands;
+use std::sync::Arc;
+use crate::db::Database;
+use crate::models::UserInfo;
 
 pub mod call;
 pub mod join;
@@ -7,6 +11,13 @@ pub mod list;
 pub mod mute;
 pub mod unmute;
 pub mod ask;
+
+pub struct CommandContext {
+    pub bot: Bot,
+    pub msg: Message,
+    pub db: Arc<Database>,
+    pub user: UserInfo,
+}
 
 #[derive(BotCommands, Clone)]
 #[command(rename_rule = "lowercase", description = "Available commands:")]
@@ -27,6 +38,36 @@ pub enum Command {
     List,
     #[command(description = "show available commands")]
     Help,
+}
+
+pub async fn handle_command(ctx: CommandContext, cmd: Command) -> anyhow::Result<()> {
+    match cmd {
+        Command::Help => {
+            ctx.bot.send_message(ctx.msg.chat.id, Command::descriptions().to_string()).await?;
+        }
+        Command::Mute(arg) => {
+            mute::handle_mute(ctx, arg).await?;
+        }
+        Command::Unmute(arg) => {
+            unmute::handle_unmute(ctx, arg).await?;
+        }
+        Command::Join(tag) => {
+            join::handle_join(ctx, tag).await?;
+        }
+        Command::Left(tag) => {
+            leave::handle_leave(ctx, tag).await?;
+        }
+        Command::List => {
+            list::handle_list(ctx).await?;
+        }
+        Command::Call(tag) => {
+            call::handle_call(ctx, tag).await?;
+        }
+        Command::Ask(input) => {
+            ask::handle_ask(ctx, input).await?;
+        }
+    }
+    Ok(())
 }
 
 pub fn normalize_tag(tag: String) -> String {

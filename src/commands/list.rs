@@ -1,14 +1,13 @@
 use teloxide::prelude::*;
 use teloxide::utils::markdown;
-use std::sync::Arc;
-use crate::db::Database;
+use crate::commands::CommandContext;
 
-pub async fn handle_list(bot: Bot, msg: Message, db: Arc<Database>) -> anyhow::Result<()> {
-    let tags = db.list_tags(msg.chat.id.0).await?;
-    let muted_count = db.get_muted_count(msg.chat.id.0).await?;
+pub async fn handle_list(ctx: CommandContext) -> anyhow::Result<()> {
+    let tags = ctx.db.list_tags(ctx.msg.chat.id.0).await?;
+    let muted_count = ctx.db.get_muted_count(ctx.msg.chat.id.0).await?;
 
     if tags.is_empty() {
-        bot.send_message(msg.chat.id, format!("No tags exist in this group yet.
+        ctx.bot.send_message(ctx.msg.chat.id, format!("No tags exist in this group yet.
 Muted users: {}", muted_count)).await?;
     } else {
         let mut tag_list = Vec::new();
@@ -21,7 +20,7 @@ Muted users: {}", muted_count)).await?;
 
 Muted users: {}", tag_list.join("
 "), muted_count);
-        bot.send_message(msg.chat.id, message).await?;
+        ctx.bot.send_message(ctx.msg.chat.id, message).await?;
     }
     Ok(())
 }
