@@ -1,6 +1,6 @@
 use crate::commands::CommandContext;
 use teloxide::prelude::*;
-use teloxide::utils::markdown;
+use teloxide::utils::html;
 
 pub async fn handle_list(ctx: CommandContext) -> anyhow::Result<()> {
     let tags = ctx.db.list_tags(ctx.msg.chat.id.0).await?;
@@ -14,7 +14,7 @@ pub async fn handle_list(ctx: CommandContext) -> anyhow::Result<()> {
         for (tag_name, count) in tags {
             tag_list.push(format!(
                 "• {} ({} users)",
-                markdown::escape(&tag_name),
+                html::escape(&tag_name),
                 count
             ));
         }
@@ -29,7 +29,7 @@ pub async fn handle_list(ctx: CommandContext) -> anyhow::Result<()> {
         );
         ctx.bot
             .send_message(ctx.msg.chat.id, message)
-            .parse_mode(teloxide::types::ParseMode::MarkdownV2)
+            .parse_mode(teloxide::types::ParseMode::Html)
             .await?;
     }
     Ok(())

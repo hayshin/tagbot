@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use teloxide::prelude::*;
 use teloxide::types::{ParseMode, Recipient};
-use teloxide::utils::markdown;
+use teloxide::utils::html;
 
 #[async_trait]
 pub trait BotResponseExt {
@@ -20,8 +20,8 @@ impl BotResponseExt for Bot {
     where
         C: Into<Recipient> + Send,
     {
-        self.send_message(chat_id, format!("❌ {}", markdown::escape(message)))
-            .parse_mode(ParseMode::MarkdownV2)
+        self.send_message(chat_id, format!("❌ {}", html::escape(message)))
+            .parse_mode(ParseMode::Html)
             .await?;
         Ok(())
     }
@@ -30,8 +30,8 @@ impl BotResponseExt for Bot {
     where
         C: Into<Recipient> + Send,
     {
-        self.send_message(chat_id, format!("✅ {}", markdown::escape(message)))
-            .parse_mode(ParseMode::MarkdownV2)
+        self.send_message(chat_id, format!("✅ {}", html::escape(message)))
+            .parse_mode(ParseMode::Html)
             .await?;
         Ok(())
     }

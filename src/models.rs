@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use teloxide::utils::markdown;
+use teloxide::utils::html;
 
 pub type UserId = u64;
 
@@ -13,12 +13,12 @@ pub struct UserInfo {
 impl UserInfo {
     pub fn mention(&self) -> String {
         match &self.username {
-            Some(username) => format!("@{}", markdown::escape(username)),
+            Some(username) => format!("@{}", html::escape(username)),
             None => {
                 format!(
-                    "[{}](tg://user?id={})",
-                    markdown::escape(&self.first_name),
-                    self.id
+                    "<a href=\"tg://user?id={}\">{}</a>",
+                    self.id,
+                    html::escape(&self.first_name)
                 )
             }
         }

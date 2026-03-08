@@ -1,7 +1,7 @@
 use crate::commands::{CommandContext, Tag};
 use futures::future::join_all;
 use teloxide::prelude::*;
-use teloxide::utils::markdown;
+use teloxide::utils::html;
 
 pub async fn handle_call(ctx: CommandContext, tag: Tag) -> anyhow::Result<()> {
     let users_to_call = ctx
@@ -14,8 +14,8 @@ pub async fn handle_call(ctx: CommandContext, tag: Tag) -> anyhow::Result<()> {
             .send_message(
                 ctx.msg.chat.id,
                 format!(
-                    "No users in tag '{}' (or they are all muted)",
-                    markdown::escape(tag.as_ref())
+                    "No users in tag '{}'",
+                    html::escape(tag.as_ref())
                 ),
             )
             .await?;
@@ -27,27 +27,27 @@ pub async fn handle_call(ctx: CommandContext, tag: Tag) -> anyhow::Result<()> {
 
         let message = format!(
             "Calling tag '{}': {}",
-            markdown::escape(tag.as_ref()),
+            html::escape(tag.as_ref()),
             mentions.join(" ")
         );
 
         ctx.bot
             .send_message(ctx.msg.chat.id, message)
-            .parse_mode(teloxide::types::ParseMode::MarkdownV2)
+            .parse_mode(teloxide::types::ParseMode::Html)
             .await?;
 
         // Also send direct messages to users who have started the bot privately
         let from_chat_title = ctx.msg.chat.title().unwrap_or("this group");
         let from_name = format!(
             "{} ({})",
-            markdown::escape(
+            html::escape(
                 &ctx.msg
                     .from
                     .as_ref()
                     .map(|u| u.first_name.clone())
                     .unwrap_or_else(|| "Someone".to_string())
             ),
-            markdown::escape(from_chat_title)
+            html::escape(from_chat_title)
         );
 
         let dm_futures = users_to_call

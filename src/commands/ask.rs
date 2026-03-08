@@ -54,7 +54,7 @@ pub async fn handle_ask(ctx: CommandContext, input: String) -> anyhow::Result<()
         ctx.bot
             .send_message(ctx.msg.chat.id, response)
             .reply_parameters(ReplyParameters::new(ctx.msg.id))
-            .parse_mode(teloxide::types::ParseMode::MarkdownV2)
+            .parse_mode(teloxide::types::ParseMode::Html)
             .await?;
     }
     Ok(())
