@@ -9,7 +9,6 @@ pub mod join;
 pub mod leave;
 pub mod list;
 pub mod mute;
-pub mod unmute;
 pub mod ask;
 
 pub struct CommandContext {
@@ -49,7 +48,7 @@ pub async fn handle_command(ctx: CommandContext, cmd: Command) -> anyhow::Result
             mute::handle_mute(ctx, arg).await?;
         }
         Command::Unmute(arg) => {
-            unmute::handle_unmute(ctx, arg).await?;
+            mute::handle_unmute(ctx, arg).await?;
         }
         Command::Join(tag) => {
             join::handle_join(ctx, tag).await?;
