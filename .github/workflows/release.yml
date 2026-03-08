@@ -29,8 +29,9 @@ jobs:
         run: |
           set -euo pipefail
           # Build the binary for the GitHub Release
+          nix build .#default --out-link result-bin
           # Build the Docker image (Nix reuses the binary build from above)
-          nix build .#default .#dockerImage -o result-bin -o result-docker
+          nix build .#dockerImage --out-link result-docker
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
