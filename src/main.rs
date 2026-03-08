@@ -60,11 +60,11 @@ async fn answer(
             Command::Help => {
                 bot.send_message(msg.chat.id, Command::descriptions().to_string()).await?;
             }
-            Command::Mute => {
-                commands::mute::handle_mute(bot, msg, storage).await?;
+            Command::Mute(arg) => {
+                commands::mute::handle_mute(bot, msg, storage, arg).await?;
             }
-            Command::Unmute => {
-                commands::unmute::handle_unmute(bot, msg, storage).await?;
+            Command::Unmute(arg) => {
+                commands::unmute::handle_unmute(bot, msg, storage, arg).await?;
             }
             Command::Join(tag) => {
                 commands::join::handle_join(bot, msg, storage, tag).await?;

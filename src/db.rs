@@ -41,7 +41,8 @@ impl Database {
                 "CREATE TABLE IF NOT EXISTS muted_users (
                     chat_id INTEGER,
                     user_id INTEGER,
-                    PRIMARY KEY (chat_id, user_id),
+                    mute_type TEXT DEFAULT 'all',
+                    PRIMARY KEY (chat_id, user_id, mute_type),
                     FOREIGN KEY (user_id) REFERENCES users (user_id)
                 )",
                 [],
@@ -54,6 +55,10 @@ impl Database {
                 )",
                 [],
             )?;
+
+            // Migration: if the table was created without mute_type, the PRIMARY KEY might be different.
+            // For a simple SQLite setup, we can try to add the column if it doesn't exist.
+            let _ = conn.execute("ALTER TABLE muted_users ADD COLUMN mute_type TEXT DEFAULT 'all'", []);
             Ok(())
         }).await?;
 
@@ -105,37 +110,51 @@ impl Database {
         }).await
     }
 
-    pub async fn mute_user(&self, chat_id: i64, user_id: u64) -> Result<bool> {
+    pub async fn mute_user(&self, chat_id: i64, user_id: u64, mute_type: String) -> Result<bool> {
         self.conn.call(move |conn| {
             let changed = conn.execute(
-                "INSERT OR IGNORE INTO muted_users (chat_id, user_id) VALUES (?, ?)",
-                params![chat_id, user_id],
+                "INSERT OR IGNORE INTO muted_users (chat_id, user_id, mute_type) VALUES (?, ?, ?)",
+                params![chat_id, user_id, mute_type],
             )?;
             Ok(changed > 0)
         }).await
     }
 
-    pub async fn unmute_user(&self, chat_id: i64, user_id: u64) -> Result<bool> {
+    pub async fn unmute_user(&self, chat_id: i64, user_id: u64, mute_type: String) -> Result<bool> {
         self.conn.call(move |conn| {
             let changed = conn.execute(
-                "DELETE FROM muted_users WHERE chat_id = ? AND user_id = ?",
-                params![chat_id, user_id],
+                "DELETE FROM muted_users WHERE chat_id = ? AND user_id = ? AND mute_type = ?",
+                params![chat_id, user_id, mute_type],
             )?;
             Ok(changed > 0)
         }).await
     }
 
-    pub async fn get_tag_users(&self, chat_id: i64, tag_name: String) -> Result<Vec<TagUserInfo>> {
+    pub async fn get_tag_users(&self, chat_id: i64, tag_name: String, filter_mute_type: Option<String>) -> Result<Vec<TagUserInfo>> {
         self.conn.call(move |conn| {
-            let mut stmt = conn.prepare(
-                "SELECT u.user_id, u.username, u.first_name, (pu.user_id IS NOT NULL) as is_private
+            let (query, params_vec) = if let Some(mtype) = filter_mute_type {
+                let q = "SELECT u.user_id, u.username, u.first_name, (pu.user_id IS NOT NULL) as is_private
+                     FROM user_tags t
+                     JOIN users u ON t.user_id = u.user_id
+                     LEFT JOIN private_users pu ON u.user_id = pu.user_id
+                     WHERE t.chat_id = ? AND t.tag_name = ? 
+                     AND u.user_id NOT IN (
+                         SELECT user_id FROM muted_users 
+                         WHERE chat_id = ? AND (mute_type = 'all' OR mute_type = ?)
+                     )".to_string();
+                (q, params![chat_id, tag_name, chat_id, mtype])
+            } else {
+                let q = "SELECT u.user_id, u.username, u.first_name, (pu.user_id IS NOT NULL) as is_private
                  FROM user_tags t
                  JOIN users u ON t.user_id = u.user_id
                  LEFT JOIN private_users pu ON u.user_id = pu.user_id
-                 LEFT JOIN muted_users mu ON u.user_id = mu.user_id AND t.chat_id = mu.chat_id
-                 WHERE t.chat_id = ? AND t.tag_name = ? AND mu.user_id IS NULL",
-            )?;
-            let rows = stmt.query_map(params![chat_id, tag_name], |row| {
+                 LEFT JOIN muted_users mu ON u.user_id = mu.user_id AND t.chat_id = mu.chat_id AND mu.mute_type = 'all'
+                 WHERE t.chat_id = ? AND t.tag_name = ? AND mu.user_id IS NULL".to_string();
+                (q, params![chat_id, tag_name])
+            };
+
+            let mut stmt = conn.prepare(&query)?;
+            let rows = stmt.query_map(params_vec, |row| {
                 Ok(TagUserInfo {
                     info: UserInfo {
                         id: row.get(0)?,
@@ -175,7 +194,7 @@ impl Database {
     pub async fn get_muted_count(&self, chat_id: i64) -> Result<i64> {
         self.conn.call(move |conn| {
             let count: i64 = conn.query_row(
-                "SELECT COUNT(*) FROM muted_users WHERE chat_id = ?",
+                "SELECT COUNT(*) FROM muted_users WHERE chat_id = ? AND mute_type = 'all'",
                 params![chat_id],
                 |row| row.get(0),
             )?;

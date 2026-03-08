@@ -11,10 +11,10 @@ pub mod ask;
 #[derive(BotCommands, Clone)]
 #[command(rename_rule = "lowercase", description = "Available commands:")]
 pub enum Command {
-    #[command(description = "mute yourself - you won't be called in group mentions")]
-    Mute,
-    #[command(description = "unmute yourself - you will be called in group mentions again")]
-    Unmute,
+    #[command(description = "mute yourself: /mute [ask] (default to 'all')")]
+    Mute(String),
+    #[command(description = "unmute yourself: /unmute [ask] (default to 'all')")]
+    Unmute(String),
     #[command(description = "leave a tag: /left [tag_name] (defaults to 'all')")]
     Left(String),
     #[command(description = "join a tag: /join [tag_name] (defaults to 'all')")]

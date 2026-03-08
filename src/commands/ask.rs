@@ -27,10 +27,10 @@ pub async fn handle_ask(bot: Bot, msg: Message, db: Arc<Database>, input: String
 }
 
 async fn pick_and_respond(bot: Bot, msg: Message, db: Arc<Database>, tag_name: String, question: &str) -> anyhow::Result<()> {
-    let users = db.get_tag_users(msg.chat.id.0, tag_name.clone()).await?;
+    let users = db.get_tag_users(msg.chat.id.0, tag_name.clone(), Some("ask".to_string())).await?;
 
     if users.is_empty() {
-        bot.send_message(msg.chat.id, format!("No users in tag '{}'", markdown::escape(&tag_name))).await?;
+        bot.send_message(msg.chat.id, format!("No users in tag '{}' (or they are all muted for /ask)", markdown::escape(&tag_name))).await?;
     } else {
         let picked_user = users.choose(&mut rand::thread_rng()).unwrap();
         let mention = picked_user.info.mention();
