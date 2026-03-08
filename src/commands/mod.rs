@@ -10,6 +10,9 @@ pub mod leave;
 pub mod list;
 pub mod mute;
 pub mod ask;
+pub mod responses;
+
+pub use responses::BotResponseExt;
 
 pub struct CommandContext {
     pub bot: Bot,

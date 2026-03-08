@@ -1,17 +1,16 @@
-use teloxide::prelude::*;
 use teloxide::utils::markdown;
-use crate::commands::{Tag, CommandContext};
+use crate::commands::{Tag, CommandContext, BotResponseExt};
 
 pub async fn handle_join(ctx: CommandContext, tag: Tag) -> anyhow::Result<()> {
     if ctx.db.join_tag(ctx.msg.chat.id.0, tag.as_ref().to_string(), &ctx.user).await? {
-        ctx.bot.send_message(
+        ctx.bot.send_success_msg(
             ctx.msg.chat.id,
-            format!("You have been added to tag '{}'", markdown::escape(tag.as_ref())),
+            &format!("You have been added to tag '{}'", markdown::escape(tag.as_ref())),
         ).await?;
     } else {
-        ctx.bot.send_message(
+        ctx.bot.send_error_msg(
             ctx.msg.chat.id,
-            format!("You are already in tag '{}'", markdown::escape(tag.as_ref())),
+            &format!("You are already in tag '{}'", markdown::escape(tag.as_ref())),
         ).await?;
     }
     Ok(())
