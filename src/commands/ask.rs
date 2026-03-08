@@ -1,18 +1,15 @@
 use crate::commands::{BotResponseExt, CommandContext, Tag};
 use rand::seq::SliceRandom;
 use teloxide::prelude::*;
-use teloxide::utils::markdown;
+use teloxide::types::ReplyParameters;
 
 pub async fn handle_ask(ctx: CommandContext, input: String) -> anyhow::Result<()> {
     let input = input.trim();
 
     let mut tag = Tag::new("all".to_string());
-    let mut question = input.to_string();
 
     let users = if !input.is_empty() {
-        let mut parts = input.splitn(2, ' ');
-        let first_word = parts.next().unwrap_or("");
-        let rest = parts.next().unwrap_or("");
+        let first_word = input.split(' ').next().unwrap_or("");
         let potential_tag = Tag::new(first_word.to_string());
 
         let users = ctx
@@ -24,17 +21,15 @@ pub async fn handle_ask(ctx: CommandContext, input: String) -> anyhow::Result<()
             .await?;
         if !users.is_empty() {
             tag = potential_tag;
-            question = rest.to_string();
             users
         } else {
-            // Fallback to "all" tag with full input as question
+            // Fallback to "all" tag
             ctx.db
                 .get_tag_users(ctx.msg.chat.id.0, tag.to_string())
                 .await?
         }
     } else {
         // Empty input: use "all" tag
-        question = "".to_string();
         ctx.db
             .get_tag_users(ctx.msg.chat.id.0, tag.to_string())
             .await?
@@ -45,7 +40,7 @@ pub async fn handle_ask(ctx: CommandContext, input: String) -> anyhow::Result<()
             .send_error_msg(
                 ctx.msg.chat.id,
                 &format!(
-                    "No users in tag '{}' (or they are all muted for /ask)",
+                    "No users in tag '{}'",
                     tag.as_ref()
                 ),
             )
@@ -54,18 +49,11 @@ pub async fn handle_ask(ctx: CommandContext, input: String) -> anyhow::Result<()
         let picked_user = users.choose(&mut rand::thread_rng()).unwrap();
         let mention = picked_user.info.mention();
 
-        let response = if question.is_empty() {
-            format!(
-                "The chosen one from tag '{}' is {}!",
-                markdown::escape(tag.as_ref()),
-                mention
-            )
-        } else {
-            format!(r"{} \- it's {}!", markdown::escape(&question), mention)
-        };
+        let response = format!("It's {}!", mention);
 
         ctx.bot
             .send_message(ctx.msg.chat.id, response)
+            .reply_parameters(ReplyParameters::new(ctx.msg.id))
             .parse_mode(teloxide::types::ParseMode::MarkdownV2)
             .await?;
     }
