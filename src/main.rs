@@ -54,13 +54,10 @@ async fn handle_maybe_plain_command(
 
         let cmd_name = commands::normalize_word(cmd_name_raw);
         let cmd = match cmd_name.as_str() {
-            "ask" => Some(Command::Ask(args.to_string())),
             "call" => Some(Command::Call(args.to_string())),
             "join" => Some(Command::Join(args.to_string())),
             "leave" => Some(Command::Leave(args.to_string())),
             "list" => Some(Command::List),
-            "mute" => Some(Command::Mute(args.to_string())),
-            "unmute" => Some(Command::Unmute(args.to_string())),
             "help" => Some(Command::Help),
             _ => None,
         };

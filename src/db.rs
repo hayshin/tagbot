@@ -43,30 +43,12 @@ impl Database {
                 )?;
 
                 conn.execute(
-                    "CREATE TABLE IF NOT EXISTS muted_users (
-                    chat_id INTEGER,
-                    user_id INTEGER,
-                    mute_type TEXT DEFAULT 'алл',
-                    PRIMARY KEY (chat_id, user_id, mute_type),
-                    FOREIGN KEY (user_id) REFERENCES users (user_id)
-                )",
-                    [],
-                )?;
-
-                conn.execute(
                     "CREATE TABLE IF NOT EXISTS private_users (
                     user_id INTEGER PRIMARY KEY,
                     FOREIGN KEY (user_id) REFERENCES users (user_id)
                 )",
                     [],
                 )?;
-
-                // Migration: if the table was created without mute_type, the PRIMARY KEY might be different.
-                // For a simple SQLite setup, we can try to add the column if it doesn't exist.
-                let _ = conn.execute(
-                    "ALTER TABLE muted_users ADD COLUMN mute_type TEXT DEFAULT 'алл'",
-                    [],
-                );
                 Ok(())
             })
             .await
@@ -125,30 +107,6 @@ impl Database {
             .await
     }
 
-    pub async fn mute_user(&self, chat_id: i64, user_id: u64, mute_type: String) -> Result<bool> {
-        self.conn
-            .call(move |conn| {
-                let changed = conn.execute(
-                "INSERT OR IGNORE INTO muted_users (chat_id, user_id, mute_type) VALUES (?, ?, ?)",
-                params![chat_id, user_id, mute_type],
-            )?;
-                Ok(changed > 0)
-            })
-            .await
-    }
-
-    pub async fn unmute_user(&self, chat_id: i64, user_id: u64, mute_type: String) -> Result<bool> {
-        self.conn
-            .call(move |conn| {
-                let changed = conn.execute(
-                    "DELETE FROM muted_users WHERE chat_id = ? AND user_id = ? AND mute_type = ?",
-                    params![chat_id, user_id, mute_type],
-                )?;
-                Ok(changed > 0)
-            })
-            .await
-    }
-
     pub async fn get_tag_users(
         &self,
         chat_id: i64,
@@ -160,13 +118,9 @@ impl Database {
                  FROM user_tags t
                  JOIN users u ON t.user_id = u.user_id
                  LEFT JOIN private_users pu ON u.user_id = pu.user_id
-                 WHERE t.chat_id = ? AND t.tag_name = ?
-                 AND u.user_id NOT IN (
-                     SELECT user_id FROM muted_users
-                     WHERE chat_id = ? AND mute_type = ?
-                 )";
+                 WHERE t.chat_id = ? AND t.tag_name = ?";
             let mut stmt = conn.prepare(q)?;
-            let rows = stmt.query_map(params![chat_id, tag_name.clone(), chat_id, tag_name], |row| {
+            let rows = stmt.query_map(params![chat_id, tag_name], |row| {
                 Ok(TagUserInfo {
                     info: UserInfo {
                         id: row.get(0)?,

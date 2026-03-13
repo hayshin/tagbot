@@ -4,12 +4,10 @@ use std::sync::Arc;
 use teloxide::prelude::*;
 use teloxide::utils::command::BotCommands;
 
-pub mod ask;
 pub mod call;
 pub mod join;
 pub mod leave;
 pub mod list;
-pub mod mute;
 pub mod responses;
 
 pub use responses::BotResponseExt;
@@ -27,13 +25,10 @@ pub fn normalize_word(word: &str) -> String {
     let word = word.trim().to_lowercase();
 
     match word.as_str() {
-        "аск" => "ask".to_string(),
         "калл" | "колл" => "call".to_string(),
         "лив" => "leave".to_string(),
         "джоин" | "жоин" => "join".to_string(),
         "лист" => "list".to_string(),
-        "мьют" | "мут" => "mute".to_string(),
-        "анмьют" | "анмут" => "unmute".to_string(),
         "хелп" | "помощь" => "help".to_string(),
         other => other.to_string(),
     }
@@ -66,18 +61,12 @@ impl AsRef<str> for Tag {
 pub enum Command {
     #[command(description = "начать работу с ботом")]
     Start,
-    #[command(description = "замутить тег: /mute <название_тега>")]
-    Mute(String),
-    #[command(description = "размутить тег: /unmute <название_тега>")]
-    Unmute(String),
     #[command(description = "выйти из тега: /leave [название_тега] (по умолчанию 'алл')")]
     Leave(String),
     #[command(description = "войти в тег: /join [название_тега] (по умолчанию 'алл')")]
     Join(String),
     #[command(description = "вызвать всех участников тега: /call [название_тега] (по умолчанию 'алл')")]
     Call(String),
-    #[command(description = "выбрать случайного участника тега: /ask [название_тега] (по умолчанию 'алл')")]
-    Ask(String),
     #[command(description = "показать список всех тегов в группе")]
     List,
     #[command(description = "показать справку по командам")]
@@ -100,12 +89,6 @@ pub async fn handle_command(ctx: CommandContext, cmd: Command) -> anyhow::Result
                 .send_message(ctx.msg.chat.id, Command::descriptions().to_string())
                 .await?;
         }
-        Command::Mute(arg) => {
-            mute::handle_mute(ctx, arg).await?;
-        }
-        Command::Unmute(arg) => {
-            mute::handle_unmute(ctx, arg).await?;
-        }
         Command::Join(tag) => {
             join::handle_join(ctx, Tag::new(tag)).await?;
         }
@@ -117,9 +100,6 @@ pub async fn handle_command(ctx: CommandContext, cmd: Command) -> anyhow::Result
         }
         Command::Call(tag) => {
             call::handle_call(ctx, Tag::new(tag)).await?;
-        }
-        Command::Ask(input) => {
-            ask::handle_ask(ctx, input).await?;
         }
     }
     Ok(())

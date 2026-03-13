@@ -5,18 +5,14 @@ A Telegram bot built with Rust and Teloxide that allows users to create and mana
 ## Features
 
 - **Tag Management**: Users can add themselves to custom tags
-- **Mute Functionality**: Users can mute themselves to avoid being mentioned in group calls
 - **Selective Calling**: Call specific tags or all users in the group
 - **Per-Group Storage**: Each group maintains its own set of tags and users
 
 ## Commands
 
-- `/mute` - Mute yourself (you won't be called in group mentions)
-- `/unmute` - Unmute yourself (you will be called in group mentions again)
 - `/join [tag_name]` - Join a specific tag (defaults to "алл")
 - `/leave [tag_name]` - Leave a specific tag (defaults to "алл")
 - `/call [tag_name]` - Mention all users in the specified tag (or all non-muted users if "алл" or no tag specified)
-- `/ask [tag_name]` - Pick a random user from the tag (defaults to "алл")
 - `/list` - List all tags in this group
 - `/help` - Show available commands
 
@@ -77,8 +73,9 @@ If you have Nix installed with flakes enabled:
 4. Leave tags:
    - `/leave developers`
    - `/leave` - leave the "алл" tag.
-5. Mute yourself to avoid group mentions:
-   - `/mute`.
+5. Leave tags:
+   - `/leave developers`
+   - `/leave` - leave the "алл" tag.
 
 ## Project Structure
 
@@ -94,8 +91,7 @@ If you have Nix installed with flakes enabled:
 │       ├── join.rs      # /join handler
 │       ├── leave.rs     # /leave handler
 │       ├── list.rs      # /list handler
-│       ├── mute.rs      # /mute handler
-│       └── unmute.rs    # /unmute handler
+│       └── responses.rs # Bot responses
 ├── Cargo.toml           # Rust dependencies
 ├── flake.nix            # Nix flake configuration
 ├── .env.example         # Environment variable template
@@ -106,6 +102,5 @@ If you have Nix installed with flakes enabled:
 
 - Data is persisted in a SQLite database (`tagbot.db`).
 - Each group maintains its own separate tag system.
-- Muted users are excluded from `/call` results.
 - Users can only add/remove themselves, not other users.
 - **Private Notifications**: To receive direct messages when you're called in a group, you MUST start a private chat with the bot (send any message to it).
