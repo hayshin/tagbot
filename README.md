@@ -1,106 +1,75 @@
 # Telegram Tag Bot
 
-A Telegram bot built with Rust and Teloxide that allows users to create and manage tags for group mentions.
+Телеграм-бот на Rust (Teloxide) для создания и управления тегами для групповых упоминаний.
 
-## Features
+## Особенности
 
-- **Tag Management**: Users can add themselves to custom tags
-- **Selective Calling**: Call specific tags or all users in the group
-- **Per-Group Storage**: Each group maintains its own set of tags and users
+- **Менеджмент тегов**: Пользователи могут вступать в кастомные теги.
+- **Мут тегов**: Можно замутить конкретный тег, чтобы не получать упоминания.
+- **Случайный выбор**: Команда `/ask` выбирает случайного человека из тега.
+- **Двуязычные команды**: Поддержка команд на русском (аск, калл, джоин) и английском.
+- **Работа без слеша**: Возможность использовать команды просто текстом (например, `аск дев`).
 
-## Commands
+## Важное примечание для групп
 
-- `/join [tag_name]` - Join a specific tag (defaults to "алл")
-- `/leave [tag_name]` - Leave a specific tag (defaults to "алл")
-- `/call [tag_name]` - Mention all users in the specified tag (or all non-muted users if "алл" or no tag specified)
-- `/list` - List all tags in this group
-- `/help` - Show available commands
+По умолчанию у ботов Telegram включен **Privacy Mode**. Чтобы бот мог реагировать на команды **без слеша** (например, просто `аск` вместо `/ask`), необходимо отключить его:
 
-## Deployment
+1. Напишите [@BotFather](https://t.me/BotFather).
+2. Выберите своего бота: `/mybots` -> `@ваш_бот`.
+3. Перейдите в **Bot Settings** -> **Group Privacy**.
+4. Нажмите **Turn off** (должно стать `Privacy mode is disabled`).
+5. Если бот уже в группе, его нужно удалить и добавить заново (или сделать администратором).
 
-### GitHub Actions (Automated)
+## Команды
 
-1. Push your code to a GitHub repository.
-2. Create a tag: `git tag v1.0.0 && git push origin v1.0.0`.
-3. The GitHub Action will automatically:
-   - Build a release binary and attach it to a new GitHub Release.
-   - Build and push a Docker image to GitHub Container Registry (`ghcr.io`).
+- `/mute <название_тега>` - Замутить тег для себя.
+- `/unmute <название_тега>` - Размутить тег.
+- `/join [название_тега]` - Вступить в тег (по умолчанию "алл").
+- `/leave [название_тега]` - Выйти из тега (по умолчанию "алл").
+- `/call [название_тега]` - Позвать всех участников тега.
+- `/ask [название_тега]` - Выбрать случайного участника.
+- `/list` - Список всех тегов в группе.
+- `/help` - Справка.
 
-### Nix Deployment (Manual)
+## Примеры использования
 
-If you have Nix installed with flakes enabled:
+1. Вступить в теги:
+   - `джоин дев` или `/join dev`
+   - `джоин` - вступить в дефолтный тег "алл".
+2. Вызвать группу:
+   - `калл дев` - упомянет всех в теге "dev".
+   - `калл` - упомянет всех в теге "алл".
+3. Выбрать случайного:
+   - `аск дев` -> "Это @user!"
+4. Выйти из тега:
+   - `лив дев`
+   - `лив` - выйти из "алл".
 
-1. **Build and Run Locally:**
-   ```bash
-   nix run .
-   ```
-
-2. **Build Docker Image:**
-   ```bash
-   # Build the image
-   nix build .#dockerImage
-   
-   # Load it into your local Docker daemon
-   docker load < result
-   
-   # Run the container
-   docker run -d \
-     --name tagbot \
-     -v ./data:/app/data \
-     -e TELOXIDE_TOKEN=your_token \
-     -e DATABASE_URL=/app/data/tagbot.db \
-     tagbot:latest
-   ```
-
-### Binary Deployment
-
-1. Download the latest binary from [Releases](../../releases).
-2. Create a `.env` file (see `.env.example`):
-   - `TELOXIDE_TOKEN=your_token`
-   - `DATABASE_URL=./tagbot.db`
-3. Run: `./tagbot`.
-
-## Usage Example
-
-1. Add the bot to your Telegram group.
-2. Users can join tags:
-   - `/join developers`
-   - `/join designers`
-   - `/join` - join the default "алл" tag.
-3. Call specific groups:
-   - `/call developers` - mentions all users in the "developers" tag.
-   - `/call` - mentions all non-muted users (the default "алл" tag).
-4. Leave tags:
-   - `/leave developers`
-   - `/leave` - leave the "алл" tag.
-5. Leave tags:
-   - `/leave developers`
-   - `/leave` - leave the "алл" tag.
-
-## Project Structure
+## Структура проекта
 
 ```
 .
 ├── src/
-│   ├── main.rs          # Bot entry point and dispatcher
-│   ├── db.rs            # Database operations (SQLite)
-│   ├── models.rs        # Data models
-│   └── commands/        # Command handlers
-│       ├── mod.rs       # Command definition
-│       ├── call.rs      # /call handler
-│       ├── join.rs      # /join handler
-│       ├── leave.rs     # /leave handler
-│       ├── list.rs      # /list handler
-│       └── responses.rs # Bot responses
-├── Cargo.toml           # Rust dependencies
-├── flake.nix            # Nix flake configuration
-├── .env.example         # Environment variable template
-└── README.md           # This file
+│   ├── main.rs          # Точка входа и диспетчер
+│   ├── db.rs            # Операции с БД (SQLite)
+│   ├── models.rs        # Модели данных
+│   └── commands/        # Обработчики команд
+│       ├── mod.rs       # Определение команд и нормализация
+│       ├── call.rs      # /call (вызов)
+│       ├── join.rs      # /join (вступление)
+│       ├── leave.rs     # /leave (выход)
+│       ├── list.rs      # /list (список)
+│       ├── mute.rs      # /mute (мут)
+│       └── unmute.rs    # /unmute (размут)
+├── Cargo.toml           # Зависимости Rust
+├── flake.nix            # Конфигурация Nix flake
+├── .env.example         # Шаблон переменных окружения
+└── README.md           # Этот файл
 ```
 
-## Notes
+## Заметки
 
-- Data is persisted in a SQLite database (`tagbot.db`).
-- Each group maintains its own separate tag system.
-- Users can only add/remove themselves, not other users.
-- **Private Notifications**: To receive direct messages when you're called in a group, you MUST start a private chat with the bot (send any message to it).
+- Данные хранятся в SQLite (`tagbot.db`).
+- Каждая группа имеет свою отдельную систему тегов.
+- Пользователи в муте исключаются из результатов `/call`.
+- **Личные уведомления**: Чтобы получать уведомления в личку при вызове в группе, вы ДОЛЖНЫ начать чат с ботом лично (отправить ему любое сообщение).
